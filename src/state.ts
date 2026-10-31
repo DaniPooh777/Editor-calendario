@@ -10,6 +10,7 @@ export interface CalendarEvent {
   id: string;
   /** YYYY-MM-DD */
   date: string;
+  /** Title as HTML (supports bold / italic / underline). */
   title: string;
   /** Free text like "9:00". Optional. */
   time?: string;
@@ -24,7 +25,8 @@ export interface AppState {
   season: 'primavera' | 'verano' | 'otono' | 'invierno';
   /** Current brush color; '' means no color selected. */
   brushColor: string;
-  categories: Category[];
+  /** Legend categories keyed by "YYYY-MM" (unique per month, like notes). */
+  categoriesByMonth: Record<string, Category[]>;
   events: CalendarEvent[];
   /** Rich HTML notes (bold/italic/underline) keyed by "YYYY-MM". */
   notesByMonth: Record<string, string>;
@@ -49,7 +51,7 @@ export function defaultState(): AppState {
     monthIndex: now.getMonth(),
     season: 'otono',
     brushColor: BRUSH_COLORS[0],
-    categories: [],
+    categoriesByMonth: {},
     events: [],
     notesByMonth: {},
   };
@@ -59,30 +61,47 @@ export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    const parsed = JSON.parse(raw) as Partial<AppState> & { notes?: unknown };
+    const parsed = JSON.parse(raw) as Partial<AppState> & { notes?: unknown; categories?: unknown };
     const base = defaultState();
+
+    const categoriesByMonth: Record<string, Category[]> =
+      parsed.categoriesByMonth && typeof parsed.categoriesByMonth === 'object' && !Array.isArray(parsed.categoriesByMonth)
+        ? Object.fromEntries(
+            Object.entries(parsed.categoriesByMonth as Record<string, unknown>).map(([key, value]) => [
+              key,
+              Array.isArray(value) ? (value as Category[]) : [],
+            ]),
+          )
+        : {};
 
     const notesByMonth: Record<string, string> =
       parsed.notesByMonth && typeof parsed.notesByMonth === 'object' && !Array.isArray(parsed.notesByMonth)
         ? { ...(parsed.notesByMonth as Record<string, string>) }
         : {};
 
+    const now = new Date();
+    const legacyKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
     // Migrate legacy single-notes string into the month it is viewed in.
     if (typeof parsed.notes === 'string' && parsed.notes !== '') {
-      const now = new Date();
-      const legacyKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       notesByMonth[legacyKey] ??= parsed.notes;
+    }
+
+    // Migrate legacy global categories into the month it is viewed in.
+    if (Array.isArray(parsed.categories) && parsed.categories.length > 0) {
+      categoriesByMonth[legacyKey] ??= parsed.categories as Category[];
     }
 
     const merged = {
       ...base,
       ...parsed,
-      categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+      categoriesByMonth,
       events: Array.isArray(parsed.events) ? parsed.events : [],
       notesByMonth,
       brushColor: typeof parsed.brushColor === 'string' ? parsed.brushColor : base.brushColor,
-    } as AppState & { notes?: unknown };
+    } as AppState & { notes?: unknown; categories?: unknown };
     delete merged.notes;
+    delete merged.categories;
     return merged;
   } catch {
     return defaultState();

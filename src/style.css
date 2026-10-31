@@ -208,13 +208,10 @@ body {
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.55;
 }
 
 .deco {
   position: absolute;
-  width: 34px;
-  height: 34px;
 }
 
 .deco svg {
@@ -307,6 +304,7 @@ body {
 }
 
 .cell {
+  position: relative;
   min-height: 96px;
   padding: 6px 7px 8px;
   background: var(--cell-bg);
@@ -314,7 +312,6 @@ body {
   border-bottom: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 4px;
   cursor: pointer;
   transition: background 0.12s ease;
 }
@@ -345,11 +342,6 @@ body {
   filter: brightness(1.03) saturate(1.05);
 }
 
-.cell-filled .cell-events {
-  flex: 1;
-  justify-content: center;
-}
-
 .fill-label {
   display: block;
   width: 100%;
@@ -375,13 +367,19 @@ body {
 }
 
 .day-num {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  z-index: 1;
   font-size: 14px;
   color: var(--ink);
 }
 
 .cell-events {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center; /* events centred vertically in the cell */
   gap: 4px;
   overflow-y: auto;
 }
@@ -637,6 +635,11 @@ body {
   height: 16px;
   accent-color: var(--accent);
   cursor: pointer;
+}
+
+.event-title {
+  min-height: 42px;
+  line-height: 1.45;
 }
 
 .dialog-actions {

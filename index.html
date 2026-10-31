@@ -78,10 +78,13 @@
         <h3 id="event-dialog-heading" class="dialog-heading">Nuevo evento</h3>
         <input type="hidden" id="event-iso" />
         <input type="hidden" id="event-id" />
-        <label class="field">
-          Título
-          <input type="text" id="event-title" class="input" maxlength="80" required autocomplete="off" />
-        </label>
+        <label class="field">Título</label>
+        <div id="event-format-toolbar" class="notes-toolbar">
+          <button type="button" class="notes-cmd" data-cmd="bold" title="Negrita (Ctrl+B)"><b>N</b></button>
+          <button type="button" class="notes-cmd" data-cmd="italic" title="Cursiva (Ctrl+I)"><i>C</i></button>
+          <button type="button" class="notes-cmd" data-cmd="underline" title="Subrayado (Ctrl+U)"><u>S</u></button>
+        </div>
+        <div id="event-title" class="input event-title" contenteditable="true" role="textbox" spellcheck="false"></div>
         <label class="field">
           Hora (opcional)
           <input type="text" id="event-time" class="input" maxlength="12" placeholder="9:00" autocomplete="off" />

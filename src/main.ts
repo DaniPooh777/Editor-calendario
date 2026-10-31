@@ -3,7 +3,7 @@
 import './style.css';
 import { copyCalendarImage } from './capture';
 import { monthKey } from './calendar';
-import { renderAll, renderBrush, renderGrid, renderNotes, renderTitle } from './render';
+import { renderAll, renderBrush, renderGrid, renderLegend, renderNotes, renderTitle } from './render';
 import {
   BRUSH_COLORS,
   loadState,
@@ -11,6 +11,7 @@ import {
   uid,
   type AppState,
   type CalendarEvent,
+  type Category,
 } from './state';
 
 let state: AppState = loadState();
@@ -27,6 +28,29 @@ function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
   if (!node) throw new Error(`Missing element #${id}`);
   return node as T;
+}
+
+/** Mutable legend categories for the displayed month. */
+function currentCategories(): Category[] {
+  const key = monthKey(state.year, state.monthIndex);
+  state.categoriesByMonth[key] ??= [];
+  return state.categoriesByMonth[key];
+}
+
+/** Shared N/C/S toolbar wiring for any contenteditable area. */
+function wireFormatToolbar(toolbar: HTMLElement, editable: HTMLElement, onPersist: () => void): void {
+  // Keep the text selection alive when a format button is pressed.
+  toolbar.addEventListener('mousedown', (e) => e.preventDefault());
+  toolbar.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-cmd]');
+    if (!btn?.dataset.cmd) return;
+    const sel = document.getSelection();
+    if (!editable.contains(sel?.anchorNode ?? null)) {
+      editable.focus();
+    }
+    document.execCommand(btn.dataset.cmd);
+    onPersist();
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -80,8 +104,9 @@ function changeMonth(delta: number): void {
   saveState(state);
   renderTitle(state);
   renderGrid(state);
-  // Notes are per month: swap them together with the grid (force: the caret
-  // may still sit inside the notes area).
+  // Notes and legend are per month: swap them together with the grid
+  // (force: the caret may still sit inside the notes area).
+  renderLegend(state);
   renderNotes(state, true);
 }
 
@@ -96,16 +121,21 @@ const eventDialog = el<HTMLDialogElement>('event-dialog');
 const eventForm = el<HTMLFormElement>('event-form');
 const eventIso = el<HTMLInputElement>('event-iso');
 const eventId = el<HTMLInputElement>('event-id');
-const eventTitle = el<HTMLInputElement>('event-title');
 const eventTime = el<HTMLInputElement>('event-time');
 const eventColor = el<HTMLInputElement>('event-color');
 const eventFill = el<HTMLInputElement>('event-fill');
+const eventTitle = el<HTMLElement>('event-title');
 const eventDelete = el<HTMLButtonElement>('event-delete');
 const eventHeading = el('event-dialog-heading');
+
+wireFormatToolbar(el('event-format-toolbar'), eventTitle, () => {
+  // Nothing to persist until the dialog is saved.
+});
 
 function openCreateDialog(iso: string): void {
   editingEventId = '';
   eventForm.reset();
+  eventTitle.innerHTML = '';
   eventIso.value = iso;
   eventId.value = '';
   eventHeading.textContent = 'Nuevo evento';
@@ -119,7 +149,7 @@ function openEditDialog(ev: CalendarEvent): void {
   editingEventId = ev.id;
   eventIso.value = ev.date;
   eventId.value = ev.id;
-  eventTitle.value = ev.title;
+  eventTitle.innerHTML = ev.title;
   eventTime.value = ev.time ?? '';
   eventColor.value = ev.color;
   eventFill.checked = ev.fill === true;
@@ -131,8 +161,11 @@ function openEditDialog(ev: CalendarEvent): void {
 
 eventForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  const title = eventTitle.value.trim();
-  if (!title) return;
+  if (!eventTitle.textContent?.trim()) {
+    eventTitle.focus();
+    return;
+  }
+  const title = eventTitle.innerHTML.trim();
   const time = eventTime.value.trim();
 
   if (editingEventId) {
@@ -199,7 +232,7 @@ categoryForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const name = categoryName.value.trim();
   if (!name) return;
-  state.categories.push({ id: uid(), name, color: categoryColor.value });
+  currentCategories().push({ id: uid(), name, color: categoryColor.value });
   categoryDialog.close();
   commit();
 });
@@ -209,14 +242,16 @@ el('category-cancel').addEventListener('click', () => categoryDialog.close());
 el('legend-items').addEventListener('click', (e) => {
   const deleteBtn = (e.target as HTMLElement).closest<HTMLElement>('[data-cat-delete]');
   if (deleteBtn?.dataset.catDelete) {
-    state.categories = state.categories.filter((c) => c.id !== deleteBtn.dataset.catDelete);
+    state.categoriesByMonth[monthKey(state.year, state.monthIndex)] = currentCategories().filter(
+      (c) => c.id !== deleteBtn.dataset.catDelete,
+    );
     commit();
     return;
   }
   // Click a legend item with a brush color selected → recolor category.
   const item = (e.target as HTMLElement).closest<HTMLElement>('[data-cat-id]');
   if (item?.dataset.catId && state.brushColor) {
-    const cat = state.categories.find((c) => c.id === item.dataset.catId);
+    const cat = currentCategories().find((c) => c.id === item.dataset.catId);
     if (cat) {
       cat.color = state.brushColor;
       commit();
@@ -236,20 +271,7 @@ function persistNotes(): void {
 }
 
 notesEl.addEventListener('input', persistNotes);
-
-const notesToolbar = el('notes-toolbar');
-// Keep the text selection alive when a format button is pressed.
-notesToolbar.addEventListener('mousedown', (e) => e.preventDefault());
-notesToolbar.addEventListener('click', (e) => {
-  const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-cmd]');
-  if (!btn?.dataset.cmd) return;
-  const sel = document.getSelection();
-  if (!notesEl.contains(sel?.anchorNode ?? null)) {
-    notesEl.focus();
-  }
-  document.execCommand(btn.dataset.cmd);
-  persistNotes();
-});
+wireFormatToolbar(el('notes-toolbar'), notesEl, persistNotes);
 
 // ---------------------------------------------------------------------------
 // Boot

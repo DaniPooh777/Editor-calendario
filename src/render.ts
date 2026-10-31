@@ -17,6 +17,11 @@ export function esc(value: string): string {
   });
 }
 
+/** Plain text of an HTML title (for tooltips/attributes). */
+export function stripTags(html: string): string {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
   if (!node) throw new Error(`Missing element #${id}`);
@@ -46,13 +51,13 @@ export function renderBrush(state: AppState): void {
 
 function eventChip(ev: CalendarEvent): string {
   const time = ev.time ? `<small>${esc(ev.time)}</small>` : '';
-  return `<button type="button" class="event-chip" data-event-id="${esc(ev.id)}" style="background:${esc(ev.color)}" title="Editar: ${esc(ev.title)}">${esc(ev.title)}${time}</button>`;
+  return `<button type="button" class="event-chip" data-event-id="${esc(ev.id)}" style="background:${esc(ev.color)}" title="Editar: ${esc(stripTags(ev.title))}">${ev.title}${time}</button>`;
 }
 
 /** Whole-cell event (e.g. a holiday): transparent label over the painted cell. */
 function fillLabel(ev: CalendarEvent): string {
   const time = ev.time ? `<small>${esc(ev.time)}</small>` : '';
-  return `<button type="button" class="fill-label" data-event-id="${esc(ev.id)}" title="Editar: ${esc(ev.title)}">${esc(ev.title)}${time}</button>`;
+  return `<button type="button" class="fill-label" data-event-id="${esc(ev.id)}" title="Editar: ${esc(stripTags(ev.title))}">${ev.title}${time}</button>`;
 }
 
 export function renderGrid(state: AppState): void {
@@ -89,13 +94,15 @@ export function renderGrid(state: AppState): void {
     .join('');
 }
 
+/** Legend categories are scoped to the displayed month. */
 export function renderLegend(state: AppState): void {
   const container = el('legend-items');
-  if (state.categories.length === 0) {
+  const categories = state.categoriesByMonth[monthKey(state.year, state.monthIndex)] ?? [];
+  if (categories.length === 0) {
     container.innerHTML = '<span class="legend-empty">Sin categorías todavía</span>';
     return;
   }
-  container.innerHTML = state.categories
+  container.innerHTML = categories
     .map(
       (cat) => `<div class="legend-item" data-cat-id="${esc(cat.id)}" title="Clic con el pincel para cambiar el color">
         <span class="legend-swatch" style="background:${esc(cat.color)}"></span>

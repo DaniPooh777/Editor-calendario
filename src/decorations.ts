@@ -79,6 +79,8 @@ const ring: ShapeFn = (color) =>
 interface SeasonDef {
   shapes: ShapeFn[];
   palette: string[];
+  /** Slot indices to skip (lower density for this season). */
+  skip?: readonly number[];
 }
 
 /** Three shapes cycle per season; 9-color pastel palette each. */
@@ -94,6 +96,7 @@ const SEASON_DEFS: Record<Season, SeasonDef> = {
   otono: {
     shapes: [leaf, leafNarrow, blob],
     palette: ['#d99a6c', '#c4784a', '#a8b894', '#e0b88a', '#c98d68', '#a9b88a', '#b97e55', '#8fa87c', '#dcae7f'],
+    skip: [7, 14], // one notch less dense than the other seasons
   },
   invierno: {
     shapes: [snowflake, frost, blob],
@@ -133,7 +136,8 @@ export function renderDecorations(season: Season): void {
   if (!container) return;
 
   const def = SEASON_DEFS[season] ?? SEASON_DEFS.otono;
-  container.innerHTML = SLOTS.map((slot, i) => {
+  const slots = SLOTS.filter((_, i) => !def.skip?.includes(i));
+  container.innerHTML = slots.map((slot, i) => {
     const shape = def.shapes[i % def.shapes.length];
     const color = def.palette[i % def.palette.length];
     const style =

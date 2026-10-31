@@ -3,7 +3,7 @@
 import './style.css';
 import { copyCalendarImage } from './capture';
 import { monthKey } from './calendar';
-import { renderAll, renderBrush, renderGrid, renderLegend, renderNotes, renderTitle } from './render';
+import { renderAll, renderBrush, renderGrid, renderLegend, renderNotes, renderTitle, stripTags } from './render';
 import {
   BRUSH_COLORS,
   loadState,
@@ -124,18 +124,14 @@ const eventId = el<HTMLInputElement>('event-id');
 const eventTime = el<HTMLInputElement>('event-time');
 const eventColor = el<HTMLInputElement>('event-color');
 const eventFill = el<HTMLInputElement>('event-fill');
-const eventTitle = el<HTMLElement>('event-title');
+const eventTitle = el<HTMLInputElement>('event-title');
 const eventDelete = el<HTMLButtonElement>('event-delete');
 const eventHeading = el('event-dialog-heading');
-
-wireFormatToolbar(el('event-format-toolbar'), eventTitle, () => {
-  // Nothing to persist until the dialog is saved.
-});
 
 function openCreateDialog(iso: string): void {
   editingEventId = '';
   eventForm.reset();
-  eventTitle.innerHTML = '';
+  eventTitle.value = '';
   eventIso.value = iso;
   eventId.value = '';
   eventHeading.textContent = 'Nuevo evento';
@@ -149,7 +145,8 @@ function openEditDialog(ev: CalendarEvent): void {
   editingEventId = ev.id;
   eventIso.value = ev.date;
   eventId.value = ev.id;
-  eventTitle.innerHTML = ev.title;
+  // Titles are plain text now; strip tags left over from rich-title data.
+  eventTitle.value = stripTags(ev.title);
   eventTime.value = ev.time ?? '';
   eventColor.value = ev.color;
   eventFill.checked = ev.fill === true;
@@ -161,11 +158,11 @@ function openEditDialog(ev: CalendarEvent): void {
 
 eventForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  if (!eventTitle.textContent?.trim()) {
+  const title = eventTitle.value.trim();
+  if (!title) {
     eventTitle.focus();
     return;
   }
-  const title = eventTitle.innerHTML.trim();
   const time = eventTime.value.trim();
 
   if (editingEventId) {

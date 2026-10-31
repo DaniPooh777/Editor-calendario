@@ -43,7 +43,6 @@ Está desarrollada con [Vite](https://vite.dev/) y [TypeScript](https://www.type
 | `N` | Negrita |
 | `C` | Cursiva |
 | `S` | Subrayado |
-| `Ctrl` + `B` / `I` / `U` | Atajos equivalentes |
 
 ---
 
@@ -98,25 +97,7 @@ Editor calendario/
 
 ## 🚀 Cómo ejecutarlo
 
-1. Instala [Node.js](https://nodejs.org/) (versión 18 o superior).
-2. Abre una terminal en la carpeta del proyecto.
-3. Instala las dependencias:
-   ```
-   npm install
-   ```
-4. Arranca el servidor de desarrollo:
-   ```
-   npm run dev
-   ```
-5. Abre en el navegador la dirección que aparezca en la terminal (normalmente `http://localhost:5173`).
-
-**Atajo para Windows:** también podés hacer doble clic en `abrir-calendario.bat`, que arranca el servidor y abre el navegador solo.
-
-Para generar una versión para producción:
-
-```
-npm run build
-```
+Hacé doble clic en `abrir-calendario.bat`. Arranca el servidor y abre el calendario en el navegador solo.
 
 ---
 

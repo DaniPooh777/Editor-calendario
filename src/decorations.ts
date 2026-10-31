@@ -102,24 +102,29 @@ const SEASON_DEFS: Record<Season, SeasonDef> = {
 };
 
 /**
- * Fourteen fixed slots (percent of capture area): edges and corners only,
- * with per-slot size and opacity for a scattered watercolour look.
+ * Eighteen fixed slots (percent of capture area) spread across the WHOLE
+ * calendar, not just the borders: bigger sizes with generous spacing and
+ * softer opacity so the overlay never saturates the content underneath.
  */
 const SLOTS: ReadonlyArray<{ x: number; y: number; rot: number; size: number; op: number }> = [
-  { x: 3, y: 3, rot: -18, size: 46, op: 0.6 },
-  { x: 23, y: 1.5, rot: 14, size: 28, op: 0.5 },
-  { x: 47, y: 3, rot: -8, size: 36, op: 0.55 },
-  { x: 68, y: 1.5, rot: 22, size: 26, op: 0.45 },
-  { x: 91, y: 5, rot: 30, size: 48, op: 0.62 },
-  { x: 1.5, y: 27, rot: 12, size: 30, op: 0.5 },
-  { x: 96.5, y: 26, rot: -16, size: 34, op: 0.55 },
-  { x: 2, y: 52, rot: -24, size: 40, op: 0.58 },
-  { x: 97, y: 52, rot: 18, size: 26, op: 0.45 },
-  { x: 3, y: 78, rot: 8, size: 32, op: 0.5 },
-  { x: 95, y: 76, rot: -30, size: 44, op: 0.6 },
-  { x: 8, y: 94, rot: 26, size: 42, op: 0.55 },
-  { x: 40, y: 96, rot: -12, size: 28, op: 0.48 },
-  { x: 74, y: 95, rot: 16, size: 38, op: 0.52 },
+  { x: 6, y: 5, rot: -18, size: 54, op: 0.48 },
+  { x: 30, y: 3, rot: 12, size: 42, op: 0.4 },
+  { x: 52, y: 6, rot: -6, size: 48, op: 0.44 },
+  { x: 74, y: 3, rot: 22, size: 40, op: 0.38 },
+  { x: 92, y: 7, rot: 28, size: 56, op: 0.5 },
+  { x: 14, y: 24, rot: 8, size: 46, op: 0.42 },
+  { x: 38, y: 20, rot: -20, size: 58, op: 0.46 },
+  { x: 62, y: 26, rot: 16, size: 44, op: 0.38 },
+  { x: 86, y: 22, rot: -12, size: 52, op: 0.44 },
+  { x: 8, y: 46, rot: 24, size: 50, op: 0.42 },
+  { x: 56, y: 44, rot: -8, size: 60, op: 0.48 },
+  { x: 80, y: 50, rot: 18, size: 42, op: 0.38 },
+  { x: 18, y: 70, rot: -16, size: 54, op: 0.45 },
+  { x: 44, y: 74, rot: 10, size: 46, op: 0.4 },
+  { x: 68, y: 68, rot: 26, size: 52, op: 0.46 },
+  { x: 90, y: 74, rot: -22, size: 44, op: 0.4 },
+  { x: 24, y: 92, rot: 20, size: 50, op: 0.44 },
+  { x: 58, y: 91, rot: -14, size: 48, op: 0.42 },
 ];
 
 /** Render the pastel decorations for the current season. */

@@ -2,7 +2,8 @@
 
 import './style.css';
 import { copyCalendarImage } from './capture';
-import { renderAll, renderBrush, renderGrid, renderTitle } from './render';
+import { monthKey } from './calendar';
+import { renderAll, renderBrush, renderGrid, renderNotes, renderTitle } from './render';
 import {
   BRUSH_COLORS,
   loadState,
@@ -79,6 +80,9 @@ function changeMonth(delta: number): void {
   saveState(state);
   renderTitle(state);
   renderGrid(state);
+  // Notes are per month: swap them together with the grid (force: the caret
+  // may still sit inside the notes area).
+  renderNotes(state, true);
 }
 
 el('prev-month').addEventListener('click', () => changeMonth(-1));
@@ -95,6 +99,7 @@ const eventId = el<HTMLInputElement>('event-id');
 const eventTitle = el<HTMLInputElement>('event-title');
 const eventTime = el<HTMLInputElement>('event-time');
 const eventColor = el<HTMLInputElement>('event-color');
+const eventFill = el<HTMLInputElement>('event-fill');
 const eventDelete = el<HTMLButtonElement>('event-delete');
 const eventHeading = el('event-dialog-heading');
 
@@ -117,6 +122,7 @@ function openEditDialog(ev: CalendarEvent): void {
   eventTitle.value = ev.title;
   eventTime.value = ev.time ?? '';
   eventColor.value = ev.color;
+  eventFill.checked = ev.fill === true;
   eventHeading.textContent = 'Editar evento';
   eventDelete.hidden = false;
   eventDialog.showModal();
@@ -135,6 +141,7 @@ eventForm.addEventListener('submit', (e) => {
       ev.title = title;
       ev.time = time || undefined;
       ev.color = eventColor.value;
+      ev.fill = eventFill.checked ? true : undefined;
     }
   } else {
     state.events.push({
@@ -143,6 +150,7 @@ eventForm.addEventListener('submit', (e) => {
       title,
       time: time || undefined,
       color: eventColor.value,
+      fill: eventFill.checked ? true : undefined,
     });
   }
 
@@ -217,12 +225,30 @@ el('legend-items').addEventListener('click', (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// Notes (free text, right panel)
+// Notes (rich HTML per month: bold / italic / underline)
 // ---------------------------------------------------------------------------
 
-el<HTMLTextAreaElement>('notes').addEventListener('input', (e) => {
-  state.notes = (e.target as HTMLTextAreaElement).value;
+const notesEl = el<HTMLElement>('notes');
+
+function persistNotes(): void {
+  state.notesByMonth[monthKey(state.year, state.monthIndex)] = notesEl.innerHTML;
   saveState(state);
+}
+
+notesEl.addEventListener('input', persistNotes);
+
+const notesToolbar = el('notes-toolbar');
+// Keep the text selection alive when a format button is pressed.
+notesToolbar.addEventListener('mousedown', (e) => e.preventDefault());
+notesToolbar.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-cmd]');
+  if (!btn?.dataset.cmd) return;
+  const sel = document.getSelection();
+  if (!notesEl.contains(sel?.anchorNode ?? null)) {
+    notesEl.focus();
+  }
+  document.execCommand(btn.dataset.cmd);
+  persistNotes();
 });
 
 // ---------------------------------------------------------------------------

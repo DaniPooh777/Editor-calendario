@@ -35,6 +35,8 @@
       </header>
 
       <main id="capture-area" class="capture-area">
+        <div id="season-decor" class="season-decor" aria-hidden="true"></div>
+
         <div class="calendar-header">
           <div class="month-nav" data-export-exclude>
             <button type="button" id="prev-month" class="nav-btn" title="Mes anterior">‹</button>
@@ -54,7 +56,12 @@
 
           <aside class="notes-panel">
             <h2 class="notes-title">NOTAS</h2>
-            <textarea id="notes" class="notes-textarea" placeholder="- Mar 3: Clase de Redes a las 9.00 am."></textarea>
+            <div id="notes-toolbar" class="notes-toolbar" data-export-exclude>
+              <button type="button" class="notes-cmd" data-cmd="bold" title="Negrita (Ctrl+B)"><b>N</b></button>
+              <button type="button" class="notes-cmd" data-cmd="italic" title="Cursiva (Ctrl+I)"><i>C</i></button>
+              <button type="button" class="notes-cmd" data-cmd="underline" title="Subrayado (Ctrl+U)"><u>S</u></button>
+            </div>
+            <div id="notes" class="notes-area" contenteditable="true" data-placeholder="- Mar 3: Clase de Redes a las 9.00 am." role="textbox" aria-multiline="true" spellcheck="false"></div>
           </aside>
         </div>
 
@@ -82,6 +89,10 @@
         <label class="field">
           Color
           <input type="color" id="event-color" class="color-input" value="#c4a484" />
+        </label>
+        <label class="field field-check">
+          <input type="checkbox" id="event-fill" />
+          Colorear toda la casilla (p. ej. un día de fiesta)
         </label>
         <div class="dialog-actions">
           <button type="button" id="event-delete" class="btn btn-danger">Eliminar</button>

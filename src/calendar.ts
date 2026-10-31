@@ -28,6 +28,11 @@ export function toISO(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Stable key for a month, e.g. "2026-11". Used to scope notes per month. */
+export function monthKey(year: number, monthIndex: number): string {
+  return `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+}
+
 /**
  * Build the Monday-first grid for a month.
  * Returns 5 or 6 weeks of 7 DayCells, including leading/trailing

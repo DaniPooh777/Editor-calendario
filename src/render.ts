@@ -1,6 +1,7 @@
 /** DOM rendering. Reads state, writes DOM. Never mutates state. */
 
-import { getMonthGrid, MONTHS_ES, WEEKDAYS_ES } from './calendar';
+import { getMonthGrid, monthKey, MONTHS_ES, WEEKDAYS_ES } from './calendar';
+import { renderDecorations } from './decorations';
 import { BRUSH_COLORS, type AppState, type CalendarEvent } from './state';
 
 /** Escape user text before inserting as HTML. */
@@ -48,6 +49,12 @@ function eventChip(ev: CalendarEvent): string {
   return `<button type="button" class="event-chip" data-event-id="${esc(ev.id)}" style="background:${esc(ev.color)}" title="Editar: ${esc(ev.title)}">${esc(ev.title)}${time}</button>`;
 }
 
+/** Whole-cell event (e.g. a holiday): transparent label over the painted cell. */
+function fillLabel(ev: CalendarEvent): string {
+  const time = ev.time ? `<small>${esc(ev.time)}</small>` : '';
+  return `<button type="button" class="fill-label" data-event-id="${esc(ev.id)}" title="Editar: ${esc(ev.title)}">${esc(ev.title)}${time}</button>`;
+}
+
 export function renderGrid(state: AppState): void {
   const grid = el('grid');
   const weeks = getMonthGrid(state.year, state.monthIndex);
@@ -62,16 +69,19 @@ export function renderGrid(state: AppState): void {
     .map((week) =>
       week
         .map((cell) => {
-          const dayEvents = state.events
-            .filter((ev) => ev.date === cell.iso)
-            .map(eventChip)
+          const dayEvents = state.events.filter((ev) => ev.date === cell.iso);
+          const fillEvent = dayEvents.find((ev) => ev.fill);
+          const eventsHtml = dayEvents
+            .map((ev) => (ev.fill ? fillLabel(ev) : eventChip(ev)))
             .join('');
           const classes = ['cell'];
           if (!cell.inMonth) classes.push('other-month');
+          if (fillEvent) classes.push('cell-filled');
           if (cell.iso === todayISO) classes.push('today');
-          return `<div class="${classes.join(' ')}" data-iso="${cell.iso}">
+          const fillStyle = fillEvent ? ` style="background:${esc(fillEvent.color)}"` : '';
+          return `<div class="${classes.join(' ')}" data-iso="${cell.iso}"${fillStyle}>
             <span class="day-num">${cell.day}</span>
-            <div class="cell-events">${dayEvents}</div>
+            <div class="cell-events">${eventsHtml}</div>
           </div>`;
         })
         .join(''),
@@ -96,11 +106,11 @@ export function renderLegend(state: AppState): void {
     .join('');
 }
 
-/** Notes use .value (not innerHTML) so the textarea keeps focus and stays safe. */
-export function renderNotes(state: AppState): void {
-  const notes = el<HTMLTextAreaElement>('notes');
-  if (document.activeElement !== notes) {
-    notes.value = state.notes;
+/** Notes store rich HTML per month; keep focus while the user types. */
+export function renderNotes(state: AppState, force = false): void {
+  const notes = el<HTMLElement>('notes');
+  if (force || document.activeElement !== notes) {
+    notes.innerHTML = state.notesByMonth[monthKey(state.year, state.monthIndex)] ?? '';
   }
 }
 
@@ -117,5 +127,6 @@ export function renderAll(state: AppState): void {
   renderGrid(state);
   renderLegend(state);
   renderNotes(state);
+  renderDecorations(state.season);
   applySeason(state);
 }

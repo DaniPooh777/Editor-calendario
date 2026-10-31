@@ -8,32 +8,48 @@
   --ink-soft: #6f6a5c;
   --line: #ddd5c4;
   --paper: #f7f3ea;
-  --panel: #fffdf8;
+  --panel: #fdfaf3;
+  --cell-bg: #fbf6ec;
+  --notes-bg: #faf4e8;
   --accent: #c4784a;
   --cell-hover: rgba(196, 120, 74, 0.07);
 }
 
+/* Each season retints: page bg, calendar bg, empty cells and notes. */
+
 body[data-season='primavera'] {
   --accent: #7a9e6e;
-  --paper: #f4f7ef;
+  --paper: #f3f7ef;
+  --panel: #fbfdf9;
+  --cell-bg: #f6faf3;
+  --notes-bg: #f3faf0;
   --cell-hover: rgba(122, 158, 110, 0.08);
 }
 
 body[data-season='verano'] {
   --accent: #d9a24a;
-  --paper: #faf4e6;
-  --cell-hover: rgba(217, 162, 74, 0.09);
+  --paper: #faf5e8;
+  --panel: #fffef7;
+  --cell-bg: #fffbef;
+  --notes-bg: #fdf9ea;
+  --cell-hover: rgba(217, 162, 74, 0.1);
 }
 
 body[data-season='otono'] {
   --accent: #c4784a;
   --paper: #f7f3ea;
+  --panel: #fdfaf3;
+  --cell-bg: #fbf6ec;
+  --notes-bg: #faf4e8;
   --cell-hover: rgba(196, 120, 74, 0.07);
 }
 
 body[data-season='invierno'] {
   --accent: #6f8fa8;
-  --paper: #f0f4f7;
+  --paper: #eef3f8;
+  --panel: #f9fbfe;
+  --cell-bg: #f5f9fd;
+  --notes-bg: #f0f6fc;
   --cell-hover: rgba(111, 143, 168, 0.08);
 }
 
@@ -174,11 +190,44 @@ body {
    ------------------------------------------------------------------------- */
 
 .capture-area {
+  position: relative;
+  overflow: hidden;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 34px 38px 26px;
   box-shadow: 0 4px 18px rgba(59, 56, 47, 0.06);
+  transition: background 0.25s ease;
+}
+
+/* Pastel seasonal decorations sit behind the content. */
+
+.season-decor {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.55;
+}
+
+.deco {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+}
+
+.deco svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.calendar-header,
+.calendar-layout,
+.legend {
+  position: relative;
+  z-index: 1;
 }
 
 .calendar-header {
@@ -260,6 +309,7 @@ body {
 .cell {
   min-height: 96px;
   padding: 6px 7px 8px;
+  background: var(--cell-bg);
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   display: flex;
@@ -287,6 +337,41 @@ body {
 
 .cell.today {
   box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* Whole-cell events (holidays): inline background wins over season vars. */
+
+.cell-filled:hover {
+  filter: brightness(1.03) saturate(1.05);
+}
+
+.cell-filled .cell-events {
+  flex: 1;
+  justify-content: center;
+}
+
+.fill-label {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--ink);
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.fill-label small {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  opacity: 0.85;
 }
 
 .day-num {
@@ -337,10 +422,15 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  background: var(--notes-bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 14px;
+  transition: background 0.25s ease;
 }
 
 .notes-title {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   text-align: center;
   font-size: 17px;
   font-weight: 500;
@@ -348,21 +438,43 @@ body {
   color: var(--ink);
 }
 
-.notes-textarea {
+.notes-toolbar {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.notes-cmd {
+  width: 30px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.notes-cmd:hover {
+  background: var(--cell-hover);
+}
+
+.notes-area {
   flex: 1;
-  min-height: 380px;
-  resize: vertical;
-  border: none;
-  background: transparent;
+  min-height: 360px;
   font: inherit;
   font-size: 14px;
   line-height: 1.75;
   color: var(--ink);
   padding: 4px 8px;
   outline: none;
+  overflow-wrap: anywhere;
 }
 
-.notes-textarea::placeholder {
+.notes-area:empty::before {
+  content: attr(data-placeholder);
   color: #b3ac9c;
 }
 
@@ -511,6 +623,22 @@ body {
   cursor: pointer;
 }
 
+.field-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.field-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .dialog-actions {
   display: flex;
   align-items: center;
@@ -566,7 +694,15 @@ body {
 }
 
 .export-mode .cell:hover {
-  background: transparent;
+  background: var(--cell-bg);
+}
+
+.export-mode .cell.other-month:hover {
+  background: rgba(59, 56, 47, 0.05);
+}
+
+.export-mode .cell-filled:hover {
+  filter: none;
 }
 
 .export-mode .event-chip:hover {

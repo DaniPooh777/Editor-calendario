@@ -14,6 +14,8 @@ export interface CalendarEvent {
   /** Free text like "9:00". Optional. */
   time?: string;
   color: string;
+  /** When true the event paints the whole cell (e.g. a holiday). */
+  fill?: boolean;
 }
 
 export interface AppState {
@@ -24,7 +26,8 @@ export interface AppState {
   brushColor: string;
   categories: Category[];
   events: CalendarEvent[];
-  notes: string;
+  /** Rich HTML notes (bold/italic/underline) keyed by "YYYY-MM". */
+  notesByMonth: Record<string, string>;
 }
 
 const STORAGE_KEY = 'editor-calendario-v1';
@@ -48,7 +51,7 @@ export function defaultState(): AppState {
     brushColor: BRUSH_COLORS[0],
     categories: [],
     events: [],
-    notes: '',
+    notesByMonth: {},
   };
 }
 
@@ -56,17 +59,31 @@ export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    const parsed = JSON.parse(raw) as Partial<AppState>;
+    const parsed = JSON.parse(raw) as Partial<AppState> & { notes?: unknown };
     const base = defaultState();
-    return {
+
+    const notesByMonth: Record<string, string> =
+      parsed.notesByMonth && typeof parsed.notesByMonth === 'object' && !Array.isArray(parsed.notesByMonth)
+        ? { ...(parsed.notesByMonth as Record<string, string>) }
+        : {};
+
+    // Migrate legacy single-notes string into the month it is viewed in.
+    if (typeof parsed.notes === 'string' && parsed.notes !== '') {
+      const now = new Date();
+      const legacyKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      notesByMonth[legacyKey] ??= parsed.notes;
+    }
+
+    const merged = {
       ...base,
       ...parsed,
-      // Guard shapes that come from storage.
       categories: Array.isArray(parsed.categories) ? parsed.categories : [],
       events: Array.isArray(parsed.events) ? parsed.events : [],
-      notes: typeof parsed.notes === 'string' ? parsed.notes : '',
+      notesByMonth,
       brushColor: typeof parsed.brushColor === 'string' ? parsed.brushColor : base.brushColor,
-    };
+    } as AppState & { notes?: unknown };
+    delete merged.notes;
+    return merged;
   } catch {
     return defaultState();
   }

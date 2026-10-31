@@ -713,6 +713,12 @@ body {
   visibility: hidden;
 }
 
+/* Collapse the notes toolbar row on capture so the text starts right under
+   "NOTAS"; normal mode keeps its layout untouched. */
+.export-mode .notes-toolbar {
+  display: none;
+}
+
 .export-mode .event-chip:hover {
   filter: saturate(0.92);
   transform: none;

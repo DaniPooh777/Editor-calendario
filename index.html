@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Editor de Calendario</title>
+  </head>
+  <body data-season="otono">
+    <div class="app">
+      <header class="toolbar" data-export-exclude>
+        <label class="toolbar-field">
+          Estación:
+          <select id="season-select" class="season-select">
+            <option value="primavera">Primavera 🌸</option>
+            <option value="verano">Verano ☀️</option>
+            <option value="otono" selected>Otoño 🍁</option>
+            <option value="invierno">Invierno ❄️</option>
+          </select>
+        </label>
+
+        <div class="brush">
+          <span class="brush-label">Pincel:</span>
+          <button type="button" class="brush-swatch brush-none" data-color="" title="Quitar color">✕</button>
+          <div id="brush-colors" class="brush-colors"></div>
+          <span class="brush-hint">(Seleccioná un color y clickeá una casilla o leyenda)</span>
+        </div>
+
+        <button type="button" id="copy-btn" class="copy-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span id="copy-btn-label">Copiar Calendario</span>
+        </button>
+      </header>
+
+      <main id="capture-area" class="capture-area">
+        <div class="calendar-header">
+          <div class="month-nav" data-export-exclude>
+            <button type="button" id="prev-month" class="nav-btn" title="Mes anterior">‹</button>
+            <button type="button" id="next-month" class="nav-btn" title="Mes siguiente">›</button>
+          </div>
+          <h1 class="month-title">
+            <span id="month-name"></span>
+            <strong id="year-num"></strong>
+          </h1>
+        </div>
+
+        <div class="calendar-layout">
+          <section class="grid-wrap">
+            <div class="weekdays" id="weekdays"></div>
+            <div class="grid" id="grid"></div>
+          </section>
+
+          <aside class="notes-panel">
+            <h2 class="notes-title">NOTAS</h2>
+            <textarea id="notes" class="notes-textarea" placeholder="- Mar 3: Clase de Redes a las 9.00 am."></textarea>
+          </aside>
+        </div>
+
+        <footer class="legend">
+          <span class="legend-title">LEYENDA:</span>
+          <div id="legend-items" class="legend-items"></div>
+          <button type="button" id="add-category" class="add-category" data-export-exclude>+ Añadir</button>
+        </footer>
+      </main>
+    </div>
+
+    <dialog id="event-dialog" class="dialog">
+      <form id="event-form" class="dialog-form">
+        <h3 id="event-dialog-heading" class="dialog-heading">Nuevo evento</h3>
+        <input type="hidden" id="event-iso" />
+        <input type="hidden" id="event-id" />
+        <label class="field">
+          Título
+          <input type="text" id="event-title" class="input" maxlength="80" required autocomplete="off" />
+        </label>
+        <label class="field">
+          Hora (opcional)
+          <input type="text" id="event-time" class="input" maxlength="12" placeholder="9:00" autocomplete="off" />
+        </label>
+        <label class="field">
+          Color
+          <input type="color" id="event-color" class="color-input" value="#c4a484" />
+        </label>
+        <div class="dialog-actions">
+          <button type="button" id="event-delete" class="btn btn-danger">Eliminar</button>
+          <span class="dialog-spacer"></span>
+          <button type="button" id="event-cancel" class="btn">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="category-dialog" class="dialog">
+      <form id="category-form" class="dialog-form">
+        <h3 class="dialog-heading">Nueva categoría</h3>
+        <label class="field">
+          Nombre
+          <input type="text" id="category-name" class="input" maxlength="30" required autocomplete="off" placeholder="Exámenes" />
+        </label>
+        <label class="field">
+          Color
+          <input type="color" id="category-color" class="color-input" value="#a8b894" />
+        </label>
+        <div class="dialog-actions">
+          <span class="dialog-spacer"></span>
+          <button type="button" id="category-cancel" class="btn">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

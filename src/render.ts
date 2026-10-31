@@ -1,0 +1,121 @@
+/** DOM rendering. Reads state, writes DOM. Never mutates state. */
+
+import { getMonthGrid, MONTHS_ES, WEEKDAYS_ES } from './calendar';
+import { BRUSH_COLORS, type AppState, type CalendarEvent } from './state';
+
+/** Escape user text before inserting as HTML. */
+export function esc(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => {
+    switch (ch) {
+      case '&': return '&amp;';
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '"': return '&quot;';
+      default: return '&#39;';
+    }
+  });
+}
+
+function el<T extends HTMLElement>(id: string): T {
+  const node = document.getElementById(id);
+  if (!node) throw new Error(`Missing element #${id}`);
+  return node as T;
+}
+
+export function renderTitle(state: AppState): void {
+  el('month-name').textContent = MONTHS_ES[state.monthIndex];
+  el('year-num').textContent = String(state.year);
+}
+
+export function renderWeekdays(): void {
+  el('weekdays').innerHTML = WEEKDAYS_ES.map((d) => `<div class="weekday">${d}</div>`).join('');
+}
+
+export function renderBrush(state: AppState): void {
+  const container = el('brush-colors');
+  const buttons = BRUSH_COLORS.map(
+    (color) =>
+      `<button type="button" class="brush-swatch${state.brushColor === color ? ' active' : ''}" data-color="${color}" style="background:${color}" title="Pincel ${color}"></button>`,
+  ).join('');
+  container.innerHTML = buttons;
+
+  const none = document.querySelector<HTMLButtonElement>('.brush-none');
+  if (none) none.classList.toggle('active', state.brushColor === '');
+}
+
+function eventChip(ev: CalendarEvent): string {
+  const time = ev.time ? `<small>${esc(ev.time)}</small>` : '';
+  return `<button type="button" class="event-chip" data-event-id="${esc(ev.id)}" style="background:${esc(ev.color)}" title="Editar: ${esc(ev.title)}">${esc(ev.title)}${time}</button>`;
+}
+
+export function renderGrid(state: AppState): void {
+  const grid = el('grid');
+  const weeks = getMonthGrid(state.year, state.monthIndex);
+  const todayISO = (() => {
+    const n = new Date();
+    const m = String(n.getMonth() + 1).padStart(2, '0');
+    const d = String(n.getDate()).padStart(2, '0');
+    return `${n.getFullYear()}-${m}-${d}`;
+  })();
+
+  grid.innerHTML = weeks
+    .map((week) =>
+      week
+        .map((cell) => {
+          const dayEvents = state.events
+            .filter((ev) => ev.date === cell.iso)
+            .map(eventChip)
+            .join('');
+          const classes = ['cell'];
+          if (!cell.inMonth) classes.push('other-month');
+          if (cell.iso === todayISO) classes.push('today');
+          return `<div class="${classes.join(' ')}" data-iso="${cell.iso}">
+            <span class="day-num">${cell.day}</span>
+            <div class="cell-events">${dayEvents}</div>
+          </div>`;
+        })
+        .join(''),
+    )
+    .join('');
+}
+
+export function renderLegend(state: AppState): void {
+  const container = el('legend-items');
+  if (state.categories.length === 0) {
+    container.innerHTML = '<span class="legend-empty">Sin categorías todavía</span>';
+    return;
+  }
+  container.innerHTML = state.categories
+    .map(
+      (cat) => `<div class="legend-item" data-cat-id="${esc(cat.id)}" title="Clic con el pincel para cambiar el color">
+        <span class="legend-swatch" style="background:${esc(cat.color)}"></span>
+        <span class="legend-name">${esc(cat.name)}</span>
+        <button type="button" class="legend-delete" data-cat-delete="${esc(cat.id)}" data-export-exclude title="Eliminar">×</button>
+      </div>`,
+    )
+    .join('');
+}
+
+/** Notes use .value (not innerHTML) so the textarea keeps focus and stays safe. */
+export function renderNotes(state: AppState): void {
+  const notes = el<HTMLTextAreaElement>('notes');
+  if (document.activeElement !== notes) {
+    notes.value = state.notes;
+  }
+}
+
+export function applySeason(state: AppState): void {
+  document.body.dataset.season = state.season;
+  const select = el<HTMLSelectElement>('season-select');
+  if (select.value !== state.season) select.value = state.season;
+}
+
+/** Full UI refresh from state. */
+export function renderAll(state: AppState): void {
+  renderTitle(state);
+  renderBrush(state);
+  renderGrid(state);
+  renderLegend(state);
+  renderNotes(state);
+  applySeason(state);
+}

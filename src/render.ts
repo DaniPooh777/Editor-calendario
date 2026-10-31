@@ -74,7 +74,11 @@ export function renderGrid(state: AppState): void {
     .map((week) =>
       week
         .map((cell) => {
-          const dayEvents = state.events.filter((ev) => ev.date === cell.iso);
+          // Whole-cell (all-day) events always render on top, regardless of
+          // creation order: fill labels first, then regular chips.
+          const dayEvents = state.events
+            .filter((ev) => ev.date === cell.iso)
+            .sort((a, b) => Number(b.fill ?? false) - Number(a.fill ?? false));
           const fillEvent = dayEvents.find((ev) => ev.fill);
           const eventsHtml = dayEvents
             .map((ev) => (ev.fill ? fillLabel(ev) : eventChip(ev)))

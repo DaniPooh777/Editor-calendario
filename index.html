@@ -94,6 +94,10 @@
           <input type="checkbox" id="event-fill" />
           Colorear toda la casilla (p. ej. un día de fiesta)
         </label>
+        <label class="field field-check">
+          <input type="checkbox" id="event-nobg" />
+          Sin fondo (solo el texto)
+        </label>
         <div class="dialog-actions">
           <button type="button" id="event-delete" class="btn btn-danger">Eliminar</button>
           <span class="dialog-spacer"></span>
@@ -105,7 +109,7 @@
 
     <dialog id="category-dialog" class="dialog">
       <form id="category-form" class="dialog-form">
-        <h3 class="dialog-heading">Nueva categoría</h3>
+        <h3 id="category-dialog-heading" class="dialog-heading">Nueva categoría</h3>
         <label class="field">
           Nombre
           <input type="text" id="category-name" class="input" maxlength="30" required autocomplete="off" placeholder="Exámenes" />

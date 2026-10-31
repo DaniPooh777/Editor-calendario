@@ -8,10 +8,10 @@ Está desarrollada con [Vite](https://vite.dev/) y [TypeScript](https://www.type
 
 | Categoría | Descripción |
 |-----------|-------------|
-| **Grilla mensual** | Vista de un mes completo, de lunes a domingo, con celdas editables |
-| **Eventos** | Título, hora opcional y color; el evento de casilla completa queda siempre arriba |
+| **Grilla mensual** | Vista de un mes completo, de lunes a domingo, con celdas editables y animación al pasar el cursor |
+| **Eventos** | Título, hora opcional, color; pueden ser de casilla completa o sin fondo (solo el texto) |
 | **Estaciones** | Cuatro temporadas que retintan fondo, celdas y notas, con decoraciones SVG pastel |
-| **Leyenda por mes** | Categorías propias de cada mes: se agregan, borran y recolorean con el pincel |
+| **Leyenda fija** | Lista única compartida por todos los meses: se agregan, editan, borran y recolorean con el pincel |
 | **Notas con formato** | Bloque de notas por mes con negrita, cursiva y subrayado |
 | **Copiar calendario** | Exporta el mes como PNG limpio (sin botones ni menús) al portapapeles |
 | **Persistencia** | Todo se guarda solo en tu navegador; al volver a abrir está igual |
@@ -27,6 +27,7 @@ Está desarrollada con [Vite](https://vite.dev/) y [TypeScript](https://www.type
 | `‹` `›` | Mes anterior / siguiente |
 | Clic en una celda vacía | Agregar un evento en ese día |
 | Clic sobre un evento | Editarlo o borrarlo |
+| Clic sobre la leyenda | Editar esa categoría (con el pincel activo, recolorea) |
 
 ### Herramientas de la barra
 

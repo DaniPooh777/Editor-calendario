@@ -51,7 +51,8 @@ export function renderBrush(state: AppState): void {
 
 function eventChip(ev: CalendarEvent): string {
   const time = ev.time ? `<small>${esc(ev.time)}</small>` : '';
-  return `<button type="button" class="event-chip" data-event-id="${esc(ev.id)}" style="background:${esc(ev.color)}" title="Editar: ${esc(stripTags(ev.title))}">${ev.title}${time}</button>`;
+  const style = ev.noBg ? 'style="background:transparent"' : `style="background:${esc(ev.color)}"`;
+  return `<button type="button" class="event-chip${ev.noBg ? ' event-no-bg' : ''}" data-event-id="${esc(ev.id)}" ${style} title="Editar: ${esc(stripTags(ev.title))}">${ev.title}${time}</button>`;
 }
 
 /** Whole-cell event (e.g. a holiday): transparent label over the painted cell. */
@@ -63,12 +64,6 @@ function fillLabel(ev: CalendarEvent): string {
 export function renderGrid(state: AppState): void {
   const grid = el('grid');
   const weeks = getMonthGrid(state.year, state.monthIndex);
-  const todayISO = (() => {
-    const n = new Date();
-    const m = String(n.getMonth() + 1).padStart(2, '0');
-    const d = String(n.getDate()).padStart(2, '0');
-    return `${n.getFullYear()}-${m}-${d}`;
-  })();
 
   grid.innerHTML = weeks
     .map((week) =>
@@ -86,8 +81,9 @@ export function renderGrid(state: AppState): void {
           const classes = ['cell'];
           if (!cell.inMonth) classes.push('other-month');
           if (fillEvent) classes.push('cell-filled');
-          if (cell.iso === todayISO) classes.push('today');
-          const fillStyle = fillEvent ? ` style="background:${esc(fillEvent.color)}"` : '';
+          const fillStyle = fillEvent
+            ? ` style="background:${fillEvent.noBg ? 'transparent' : esc(fillEvent.color)}"`
+            : '';
           return `<div class="${classes.join(' ')}" data-iso="${cell.iso}"${fillStyle}>
             <span class="day-num">${cell.day}</span>
             <div class="cell-events">${eventsHtml}</div>
@@ -101,14 +97,14 @@ export function renderGrid(state: AppState): void {
 /** Legend categories are scoped to the displayed month. */
 export function renderLegend(state: AppState): void {
   const container = el('legend-items');
-  const categories = state.categoriesByMonth[monthKey(state.year, state.monthIndex)] ?? [];
+  const categories = state.categories ?? [];
   if (categories.length === 0) {
     container.innerHTML = '<span class="legend-empty">Sin categorías todavía</span>';
     return;
   }
   container.innerHTML = categories
     .map(
-      (cat) => `<div class="legend-item" data-cat-id="${esc(cat.id)}" title="Clic con el pincel para cambiar el color">
+      (cat) => `<div class="legend-item" data-cat-id="${esc(cat.id)}" title="Clic en el nombre para editar · Con el pincel, clic en el cuadrito de color">
         <span class="legend-swatch" style="background:${esc(cat.color)}"></span>
         <span class="legend-name">${esc(cat.name)}</span>
         <button type="button" class="legend-delete" data-cat-delete="${esc(cat.id)}" data-export-exclude title="Eliminar">×</button>

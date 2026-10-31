@@ -3,7 +3,7 @@
 import './style.css';
 import { copyCalendarImage } from './capture';
 import { monthKey } from './calendar';
-import { renderAll, renderBrush, renderGrid, renderLegend, renderNotes, renderTitle, stripTags } from './render';
+import { renderAll, renderBrush, renderGrid, renderNotes, renderTitle, stripTags } from './render';
 import {
   BRUSH_COLORS,
   loadState,
@@ -28,13 +28,6 @@ function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
   if (!node) throw new Error(`Missing element #${id}`);
   return node as T;
-}
-
-/** Mutable legend categories for the displayed month. */
-function currentCategories(): Category[] {
-  const key = monthKey(state.year, state.monthIndex);
-  state.categoriesByMonth[key] ??= [];
-  return state.categoriesByMonth[key];
 }
 
 /** Shared N/C/S toolbar wiring for any contenteditable area. */
@@ -104,9 +97,9 @@ function changeMonth(delta: number): void {
   saveState(state);
   renderTitle(state);
   renderGrid(state);
-  // Notes and legend are per month: swap them together with the grid
-  // (force: the caret may still sit inside the notes area).
-  renderLegend(state);
+  // Notes are per month, so swap them with the grid. The legend is fixed and
+  // shared by every month, so it stays as is. (force: the caret may still sit
+  // inside the notes area.)
   renderNotes(state, true);
 }
 
@@ -124,6 +117,7 @@ const eventId = el<HTMLInputElement>('event-id');
 const eventTime = el<HTMLInputElement>('event-time');
 const eventColor = el<HTMLInputElement>('event-color');
 const eventFill = el<HTMLInputElement>('event-fill');
+const eventNoBg = el<HTMLInputElement>('event-nobg');
 const eventTitle = el<HTMLInputElement>('event-title');
 const eventDelete = el<HTMLButtonElement>('event-delete');
 const eventHeading = el('event-dialog-heading');
@@ -136,6 +130,8 @@ function openCreateDialog(iso: string): void {
   eventId.value = '';
   eventHeading.textContent = 'Nuevo evento';
   eventColor.value = state.brushColor || BRUSH_COLORS[0];
+  eventFill.checked = false;
+  eventNoBg.checked = false;
   eventDelete.hidden = true;
   eventDialog.showModal();
   eventTitle.focus();
@@ -150,6 +146,7 @@ function openEditDialog(ev: CalendarEvent): void {
   eventTime.value = ev.time ?? '';
   eventColor.value = ev.color;
   eventFill.checked = ev.fill === true;
+  eventNoBg.checked = ev.noBg === true;
   eventHeading.textContent = 'Editar evento';
   eventDelete.hidden = false;
   eventDialog.showModal();
@@ -172,6 +169,7 @@ eventForm.addEventListener('submit', (e) => {
       ev.time = time || undefined;
       ev.color = eventColor.value;
       ev.fill = eventFill.checked ? true : undefined;
+      ev.noBg = eventNoBg.checked ? true : undefined;
     }
   } else {
     state.events.push({
@@ -181,6 +179,7 @@ eventForm.addEventListener('submit', (e) => {
       time: time || undefined,
       color: eventColor.value,
       fill: eventFill.checked ? true : undefined,
+      noBg: eventNoBg.checked ? true : undefined,
     });
   }
 
@@ -217,19 +216,40 @@ const categoryDialog = el<HTMLDialogElement>('category-dialog');
 const categoryForm = el<HTMLFormElement>('category-form');
 const categoryName = el<HTMLInputElement>('category-name');
 const categoryColor = el<HTMLInputElement>('category-color');
+const categoryHeading = el('category-dialog-heading');
+let editingCategoryId = '';
 
 el('add-category').addEventListener('click', () => {
+  editingCategoryId = '';
   categoryForm.reset();
   categoryColor.value = state.brushColor || BRUSH_COLORS[2];
+  categoryHeading.textContent = 'Nueva categoría';
   categoryDialog.showModal();
   categoryName.focus();
 });
+
+function openEditCategoryDialog(cat: Category): void {
+  editingCategoryId = cat.id;
+  categoryName.value = cat.name;
+  categoryColor.value = cat.color;
+  categoryHeading.textContent = 'Editar categoría';
+  categoryDialog.showModal();
+  categoryName.focus();
+}
 
 categoryForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const name = categoryName.value.trim();
   if (!name) return;
-  currentCategories().push({ id: uid(), name, color: categoryColor.value });
+  if (editingCategoryId) {
+    const cat = state.categories.find((c) => c.id === editingCategoryId);
+    if (cat) {
+      cat.name = name;
+      cat.color = categoryColor.value;
+    }
+  } else {
+    state.categories.push({ id: uid(), name, color: categoryColor.value });
+  }
   categoryDialog.close();
   commit();
 });
@@ -237,23 +257,28 @@ categoryForm.addEventListener('submit', (e) => {
 el('category-cancel').addEventListener('click', () => categoryDialog.close());
 
 el('legend-items').addEventListener('click', (e) => {
-  const deleteBtn = (e.target as HTMLElement).closest<HTMLElement>('[data-cat-delete]');
+  const target = e.target as HTMLElement;
+  const deleteBtn = target.closest<HTMLElement>('[data-cat-delete]');
   if (deleteBtn?.dataset.catDelete) {
-    state.categoriesByMonth[monthKey(state.year, state.monthIndex)] = currentCategories().filter(
-      (c) => c.id !== deleteBtn.dataset.catDelete,
-    );
+    state.categories = state.categories.filter((c) => c.id !== deleteBtn.dataset.catDelete);
     commit();
     return;
   }
-  // Click a legend item with a brush color selected → recolor category.
-  const item = (e.target as HTMLElement).closest<HTMLElement>('[data-cat-id]');
-  if (item?.dataset.catId && state.brushColor) {
-    const cat = currentCategories().find((c) => c.id === item.dataset.catId);
-    if (cat) {
-      cat.color = state.brushColor;
-      commit();
-    }
+
+  const item = target.closest<HTMLElement>('[data-cat-id]');
+  if (!item?.dataset.catId) return;
+  const cat = state.categories.find((c) => c.id === item.dataset.catId);
+  if (!cat) return;
+
+  // Click the colour swatch with a brush colour → recolour.
+  if (target.closest('.legend-swatch') && state.brushColor) {
+    cat.color = state.brushColor;
+    commit();
+    return;
   }
+
+  // Anywhere else (including the name) → edit the category.
+  openEditCategoryDialog(cat);
 });
 
 // ---------------------------------------------------------------------------
@@ -268,6 +293,15 @@ function persistNotes(): void {
 }
 
 notesEl.addEventListener('input', persistNotes);
+
+// Enter starts a new dashed item instead of a bare line break, and the
+// spacing between items is tighter than a soft wrap (see .notes-area div).
+notesEl.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || e.shiftKey) return;
+  e.preventDefault();
+  document.execCommand('insertHTML', false, '<div>-&nbsp;</div>');
+});
+
 wireFormatToolbar(el('notes-toolbar'), notesEl, persistNotes);
 
 // ---------------------------------------------------------------------------

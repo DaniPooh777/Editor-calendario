@@ -2,3 +2,7 @@ node_modules
 dist
 *.local
 .DS_Store
+datos-calendario.json
+datos-calendario.json.tmp
+.engram
+.atl

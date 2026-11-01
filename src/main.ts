@@ -7,6 +7,7 @@ import { renderAll, renderBrush, renderGrid, renderNotes, renderTitle, stripTags
 import {
   BRUSH_COLORS,
   loadState,
+  loadStateSmart,
   saveState,
   uid,
   type AppState,
@@ -14,7 +15,11 @@ import {
   type Category,
 } from './state';
 
+// Instant placeholder from localStorage so wiring can proceed synchronously;
+// it is replaced by the newest copy (disk vs localStorage) right after boot.
+// The app stays inert until that resolves, so nobody can edit a stale state.
 let state: AppState = loadState();
+document.querySelector('.app')?.setAttribute('inert', '');
 
 /** Id of the event being edited in the dialog ('' = creating new). */
 let editingEventId = '';
@@ -309,3 +314,14 @@ wireFormatToolbar(el('notes-toolbar'), notesEl, persistNotes);
 // ---------------------------------------------------------------------------
 
 renderAll(state);
+
+// Swap in the newest copy (disk vs localStorage) once the server answers,
+// then unlock the UI. Until then the app is inert: no edits against stale data.
+void (async () => {
+  try {
+    state = await loadStateSmart();
+    renderAll(state);
+  } finally {
+    document.querySelector('.app')?.removeAttribute('inert');
+  }
+})();

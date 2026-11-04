@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Editor de Calendario">
+  <!-- binding rings (behind the page) -->
+  <rect x="17" y="2" width="6" height="14" rx="3" fill="#8a6a4a"/>
+  <rect x="41" y="2" width="6" height="14" rx="3" fill="#8a6a4a"/>
+  <!-- page -->
+  <rect x="6" y="10" width="52" height="48" rx="7" fill="#faf7f0"/>
+  <!-- header band: rounded top, straight bottom -->
+  <path d="M6 17a7 7 0 0 1 7-7h38a7 7 0 0 1 7 7v7H6z" fill="#c4a484"/>
+  <!-- event dots (palette colours) -->
+  <rect x="14" y="31" width="10" height="10" rx="3" fill="#a8b894"/>
+  <rect x="27" y="31" width="10" height="10" rx="3" fill="#e8d49a"/>
+  <rect x="40" y="31" width="10" height="10" rx="3" fill="#e8b4a0"/>
+  <rect x="14" y="45" width="10" height="10" rx="3" fill="#8fb8b8"/>
+  <rect x="27" y="45" width="10" height="10" rx="3" fill="#d9c7a7"/>
+  <rect x="40" y="45" width="10" height="10" rx="3" fill="#a8b894"/>
+</svg>

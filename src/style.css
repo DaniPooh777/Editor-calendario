@@ -13,6 +13,8 @@
   --notes-bg: #f6e6d0;
   --accent: #c4784a;
   --cell-hover: rgba(196, 120, 74, 0.14);
+  /* Interactive controls (inputs, selects, buttons) that were hardcoded white. */
+  --field-bg: #fff;
 }
 
 /* Each season retints: page bg, calendar bg, empty cells and notes.
@@ -52,6 +54,20 @@ body[data-season='invierno'] {
   --cell-bg: #ecf4fd;
   --notes-bg: #e1ecfa;
   --cell-hover: rgba(95, 131, 160, 0.16);
+}
+
+/* Dark theme: same specificity as the season blocks but declared after them,
+   so surfaces flip to warm dark while --accent stays seasonal. */
+body[data-theme='oscuro'] {
+  --ink: #ede4d3;
+  --ink-soft: #a99e8a;
+  --line: #4b443a;
+  --paper: #1a1815;
+  --panel: #24211c;
+  --cell-bg: #201d18;
+  --notes-bg: #26221b;
+  --cell-hover: rgba(237, 228, 211, 0.07);
+  --field-bg: #1c1a15;
 }
 
 * {
@@ -105,8 +121,22 @@ body {
   padding: 6px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--field-bg);
   cursor: pointer;
+}
+
+.theme-toggle {
+  font-size: 15px;
+  line-height: 1;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--field-bg);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: var(--cell-hover);
 }
 
 .brush {
@@ -146,7 +176,7 @@ body {
 }
 
 .brush-none {
-  background: #fff;
+  background: var(--field-bg);
   color: #b04a3a;
   font-size: 13px;
   border: 2px solid var(--line);
@@ -246,7 +276,7 @@ body {
   height: 34px;
   border-radius: 50%;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--field-bg);
   color: var(--ink);
   font-size: 18px;
   line-height: 1;
@@ -332,7 +362,25 @@ body {
   opacity: 0.35;
 }
 
-/* Whole-cell events (holidays): inline background wins over season vars. */
+/* Drag & drop: highlight the cell under a dragged event. */
+.cell.drop-target {
+  outline: 2px dashed var(--accent);
+  outline-offset: -3px;
+}
+
+.event-chip.dragging,
+.fill-label.dragging,
+.event-continuation.dragging {
+  opacity: 0.4;
+}
+
+.event-chip[draggable='true'],
+.fill-label[draggable='true'],
+.event-continuation[draggable='true'] {
+  cursor: grab;
+}
+
+/* Whole-cell (all-day) events: inline background wins over season vars. */
 
 .fill-label {
   display: block;
@@ -404,6 +452,21 @@ body {
   opacity: 0.85;
 }
 
+/* Later days of a multi-day event: a slim bar, clickable to edit. */
+.event-continuation {
+  display: block;
+  flex: 0 0 auto;
+  height: 6px;
+  border-radius: 999px;
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+.event-continuation.event-no-bg {
+  border: 1px dashed currentColor;
+  height: 4px;
+}
+
 /* Background-less event: text only, inherits the cell/season surface. */
 .event-no-bg {
   background: transparent;
@@ -412,6 +475,12 @@ body {
 
 .event-no-bg:hover {
   background: rgba(255, 255, 255, 0.35);
+}
+
+/* noBg chips sit on the cell surface: in dark mode that surface is dark, so
+   flip the text — except on painted (fill) cells, which keep pastel colors. */
+body[data-theme='oscuro'] .cell:not(.cell-filled) .event-no-bg {
+  color: var(--ink);
 }
 
 /* -------------------------------------------------------------------------
@@ -450,7 +519,7 @@ body {
   height: 28px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--field-bg);
   color: var(--ink);
   font-size: 13px;
   line-height: 1;
@@ -459,6 +528,18 @@ body {
 
 .notes-cmd:hover {
   background: var(--cell-hover);
+}
+
+.notes-font-size {
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--field-bg);
+  cursor: pointer;
+  padding: 0 4px;
 }
 
 .notes-area {
@@ -486,6 +567,19 @@ body {
 
 .notes-area div + div {
   margin-top: 3px;
+}
+
+/* Sublist levels: Tab / Shift+Tab toggle data-indent on the line (0 = off). */
+.notes-area [data-indent='1'] {
+  margin-left: 16px;
+}
+
+.notes-area [data-indent='2'] {
+  margin-left: 32px;
+}
+
+.notes-area [data-indent='3'] {
+  margin-left: 48px;
 }
 
 /* -------------------------------------------------------------------------
@@ -519,7 +613,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #fff;
+  background: var(--field-bg);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 6px 12px;
@@ -625,12 +719,16 @@ body {
   padding: 9px 11px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--field-bg);
 }
 
 .input:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+select.input {
+  cursor: pointer;
 }
 
 .color-input {
@@ -639,7 +737,7 @@ body {
   padding: 2px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--field-bg);
   cursor: pointer;
 }
 
@@ -676,7 +774,7 @@ body {
   padding: 8px 15px;
   border-radius: 8px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--field-bg);
   color: var(--ink);
   cursor: pointer;
 }
@@ -703,6 +801,30 @@ body {
 
 .btn-danger:hover {
   background: #fbeeeb;
+}
+
+/* Dark-mode overrides for controls whose light colours clash with the tokens. */
+body[data-theme='oscuro'] .btn-primary {
+  background: #ede4d3;
+  border-color: #ede4d3;
+  color: #17161a;
+}
+
+body[data-theme='oscuro'] .btn-primary:hover {
+  background: #ede4d3;
+}
+
+body[data-theme='oscuro'] .btn-danger:hover {
+  background: rgba(176, 74, 58, 0.18);
+}
+
+body[data-theme='oscuro'] .cell.other-month {
+  background: rgba(237, 228, 211, 0.04);
+}
+
+body[data-theme='oscuro'] .copy-btn {
+  background: #ede4d3;
+  color: #17161a;
 }
 
 /* -------------------------------------------------------------------------

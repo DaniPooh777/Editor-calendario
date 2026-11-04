@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="48x48" />
     <title>Editor de Calendario</title>
   </head>
   <body data-season="otono">
@@ -17,6 +19,8 @@
             <option value="invierno">Invierno ❄️</option>
           </select>
         </label>
+
+        <button type="button" id="theme-toggle" class="theme-toggle" title="Modo oscuro">🌙</button>
 
         <div class="brush">
           <span class="brush-label">Pincel:</span>
@@ -60,6 +64,13 @@
               <button type="button" class="notes-cmd" data-cmd="bold" title="Negrita (Ctrl+B)"><b>N</b></button>
               <button type="button" class="notes-cmd" data-cmd="italic" title="Cursiva (Ctrl+I)"><i>C</i></button>
               <button type="button" class="notes-cmd" data-cmd="underline" title="Subrayado (Ctrl+U)"><u>S</u></button>
+              <select class="notes-font-size" title="Tamaño de letra" aria-label="Tamaño de letra">
+                <option value="" selected>Tamaño</option>
+                <option value="1">Chica</option>
+                <option value="3">Normal</option>
+                <option value="5">Grande</option>
+                <option value="7">Muy grande</option>
+              </select>
             </div>
             <div id="notes" class="notes-area" contenteditable="true" data-placeholder="- Mar 3: Clase de Redes a las 9.00 am." role="textbox" aria-multiline="true" spellcheck="false"></div>
           </aside>
@@ -85,6 +96,18 @@
         <label class="field">
           Hora (opcional)
           <input type="text" id="event-time" class="input" maxlength="12" placeholder="9:00" autocomplete="off" />
+        </label>
+        <label class="field">
+          Hasta (opcional)
+          <input type="date" id="event-end" class="input" />
+        </label>
+        <label class="field">
+          Repetir
+          <select id="event-recurrence" class="input">
+            <option value="">No se repite</option>
+            <option value="semanal">Cada semana</option>
+            <option value="mensual">Cada mes</option>
+          </select>
         </label>
         <label class="field">
           Color

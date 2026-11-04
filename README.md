@@ -10,9 +10,14 @@ Está desarrollada con [Vite](https://vite.dev/) y [TypeScript](https://www.type
 |-----------|-------------|
 | **Grilla mensual** | Vista de un mes completo, de lunes a domingo, con celdas editables y animación al pasar el cursor |
 | **Eventos** | Título, hora opcional, color; pueden ser de casilla completa o sin fondo (solo el texto) |
+| **Eventos de varios días** | Con "Hasta" el evento se pinta en todo el rango dentro del mes |
+| **Eventos recurrentes** | "Repetir" cada semana (mismo día) o cada mes (mismo día del mes) |
+| **Arrastrar y soltar** | Movés un evento de una casilla a otra; los rangos se desplazan enteros |
+| **Deshacer** | `Ctrl+Z` revierte el último cambio de eventos o de leyenda |
+| **Modo oscuro** | Tema claro/oscuro persistente; la captura respeta el tema activo |
 | **Estaciones** | Cuatro temporadas que retintan fondo, celdas y notas, con decoraciones SVG pastel |
 | **Leyenda fija** | Lista única compartida por todos los meses: se agregan, editan, borran y recolorean con el pincel |
-| **Notas con formato** | Bloque de notas por mes con negrita, cursiva y subrayado |
+| **Notas con formato** | Bloque de notas por mes con negrita, cursiva, subrayado, tamaño de letra y sublistas |
 | **Copiar calendario** | Exporta el mes como PNG limpio (sin botones ni menús) al portapapeles |
 | **Persistencia** | Todo se guarda solo en tu navegador; al volver a abrir está igual |
 
@@ -27,13 +32,18 @@ Está desarrollada con [Vite](https://vite.dev/) y [TypeScript](https://www.type
 | `‹` `›` | Mes anterior / siguiente |
 | Clic en una celda vacía | Agregar un evento en ese día |
 | Clic sobre un evento | Editarlo o borrarlo |
+| Arrastrar un evento | Moverlo a otro día (un rango se mueve completo) |
+| `Ctrl+Z` | Deshacer el último cambio de eventos o de leyenda |
 | Clic sobre la leyenda | Editar esa categoría (con el pincel activo, recolorea) |
+
+Al crear o editar un evento podés completar **Hasta** para que dure varios días y **Repetir** para que se repita cada semana o cada mes; editar o borrar cualquier repetición afecta a la serie completa.
 
 ### Herramientas de la barra
 
 | Herramiento | Acción |
 |-------------|--------|
 | **Estación** | Cambiar entre Primavera, Verano, Otoño e Invierno (retinte + decoraciones) |
+| **Modo oscuro** | Alternar entre tema claro y oscuro (se guarda con el calendario) |
 | **Pincel** | Pintar casillas con el color elegido; con `✕` se limpia el color |
 | **Copiar Calendario** | Captura el mes como PNG y lo copia al portapapeles (si el navegador bloquea, lo descarga igual) |
 
@@ -44,6 +54,9 @@ Está desarrollada con [Vite](https://vite.dev/) y [TypeScript](https://www.type
 | `N` | Negrita |
 | `C` | Cursiva |
 | `S` | Subrayado |
+| Selector **Tamaño** | Chica / Normal / Grande / Muy grande sobre la selección |
+| `Tab` / `Shift+Tab` | Anidar / desanidar la línea actual |
+| `Enter` | Nueva línea con guion, heredando el nivel de sublista |
 
 ---
 

@@ -1,0 +1,99 @@
+# Mejoras aprobadas del tintero — Editor de Calendario
+
+Objetivo: implementar las 9 ideas vigentes del brainstorming del 2026-11-01 (los festivos se descartaron el 2026-11-04), de menor a mayor riesgo, con la versión Linux al final (pedido explícito).
+Entrega: main directo bajo orden explícito del usuario ("commit y push"), sin PR; si se superan ~400 líneas autorizadas se divide en varios commits work-unit ordenados.
+Tests: el repo no tiene framework de tests — verificación por tarea = `npm run build` (tsc + vite) + comprobación funcional puntual (script node en tmp cuando hay lógica pura). Excepción test-first registrada por no existir runner.
+
+## Specs
+
+### S1 — Icono de pestaña y acceso directo al .bat
+Cita usuario: "Quiero que haya icono en la pestaña [Image 1] y en el .bat."
+Cita usuario: "Por último me gusta la idea de crear un acceso directo al .bat para poder meterme imagen"
+- Favicon del navegador (SVG + ICO) linkeado en `index.html`; assets en `public/`.
+- Acceso directo `.lnk` en la raíz, apuntando a `abrir-calendario.bat`, con el `.ico` como IconLocation (el `.bat` no admite icono propio en Windows).
+- El `.lnk` es local (rutas absolutas de máquina) → `*.lnk` en `.gitignore`; los assets sí se commitean.
+Checks: build OK; `dist/index.html` contiene `<link rel="icon">`; `.lnk` creado con destino e icono válidos.
+
+### S2 — Selector de tamaño de letra en notas
+Cita (decisión previa obs #21): "selector de tamaño de letra en el toolbar de notas con presets Chica/Normal/Grande/Muy grande vía execCommand('fontSize') sobre selección, extensión del patrón wireFormatToolbar existente"
+- Select en `#notes-toolbar` con presets; aplica `fontSize` (valores 1–7) sobre la selección en `#notes`.
+Checks: tamaño aplicado persiste en `notesByMonth`; N/C/S existentes siguen funcionando.
+
+### S3 — Pincel ✕ = modo sin fondo
+Cita (decisión previa obs #21): "el pincel ✕ pasa a significar 'modo sin fondo': con el ✕ activo, al clickear una celda se abre el diálogo de evento con el checkbox 'Sin fondo' pre-marcado (~5 líneas en openCreateDialog)"
+- En `openCreateDialog`: `eventNoBg.checked = state.brushColor === ''`.
+Checks: con ✕ activo el checkbox nace marcado; con color seleccionado nace desmarcado (comportamiento previo intacto).
+
+### S4 — Modo oscuro
+Cita usuario: "El modo oscuro me gusta."
+- Toggle en la toolbar (`data-export-exclude`), persistido en `AppState.theme: 'claro' | 'oscuro'` (state es single source of truth).
+- CSS por variables/atributo `data-theme`; captura PNG refleja el tema vigente.
+Checks: toggle cambia tema; persiste tras recarga (localStorage + servidor); toolbar oculta en captura.
+
+### S5 — Sublistas con TAB en notas
+Cita usuario: "la idea de sublistas me gusta, para ello quiero usar la TAB"
+- Tab dentro de `#notes` indenta la línea actual; Shift+Tab desindenta; no sale del contenteditable. Enter sigue creando "- " al nivel actual.
+Checks: Tab/Shift+Tab anidan y desanidan; Tab con foco fuera de notas conserva navegación normal.
+
+### S6 — Festivos (DESCARTADA el 2026-11-04)
+Cita usuario: "Quiero que descartes la idea de los festivos"
+- Sin lista de festivos, sin toggle, sin `src/holidays.ts`. La implementación previa (T6) se retiró del árbol de trabajo.
+Checks: no queda código de festivos en `src/`, `index.html` ni `style.css`.
+
+### S7 — Deshacer eventos/leyenda (Ctrl+Z)
+Cita usuario: "La idea de deshacer me gusta."
+- Ctrl+Z revierte la última mutación de `events`/`categories` (crear, editar, borrar, recolorear). No interviene en notas (undo nativo del contenteditable). Stack acotado (~50).
+Checks: cada mutación se revierte con Ctrl+Z y persiste; Ctrl+Z en notas sigue haciendo undo de texto.
+
+### S8 — Drag & drop de chips
+Cita (aprobada en sección eventos): "Arrastrar y soltar — mover un chip de una casilla a otra."
+- Chip `draggable`; soltar en otra casilla cambia `ev.date` y persiste. El click-to-edit normal sigue funcionando.
+Checks: arrastrar cambia la fecha y sobrevive recarga; click sin arrastrar abre edición.
+
+### S9 — Eventos multi-día
+Cita usuario: "Quiero la posibilidad de crear eventos que duren varios días."
+- `CalendarEvent.endDate?` opcional; el diálogo acepta "Hasta"; el evento se pinta en todo el rango dentro del mes visible (decisión de render inline: inicio con chip + continuación visual en días siguientes).
+Checks: rango visible día a día; editar/eliminar desde el rango; persistencia y captura.
+
+### S10 — Eventos recurrentes
+Cita (aprobada en sección eventos): "Eventos recurrentes — 'cada lunes', semanal o mensual, sin crearlos uno por uno."
+- Campo de recurrencia opcional (`semanal` = mismo día de la semana, `mensual` = mismo día del mes), expandido en render por mes visible; editar/eliminar afecta la serie completa.
+Checks: expansión correcta en cualquier mes; persistencia; captura.
+
+### S11 — Versión Linux (AL FINAL por pedido del usuario)
+Cita usuario: "Quiero dejar para el final la versión de linux."
+- `abrir-calendario.sh` equivalente al `.bat` (node server.mjs + xdg-open, liberar puerto 5173), permisos +x, nota en README.
+Checks: `bash -n` sin errores; estructura equivalente al `.bat`.
+
+### Excluido (decisiones del usuario, no implementar)
+"Descarta la idea del link." · "Las que están pendientes de decisión descartalas" → sin compartir por URL, vista anual, duplicar mes, salto directo, paleta personalizable, PDF, backup manual, cuenta regresiva.
+
+## Tasks
+
+Ruta de todas: inline (superficies compartidas `main.ts`/`index.html`/`style.css` → sin unidades disjuntas, writer trigger no aplica).
+
+- T1 [S1] inline — completado (build OK, dist/index.html con ambos `<link rel="icon">`, favicon.svg/ico en dist, `Abrir Calendario.lnk` con IconLocation al .ico, `*.lnk` en .gitignore) — commit: — (pendiente orden "commit y push")
+- T2 [S2] inline — completado (select `Chica/Normal/Grande/Muy grande` → execCommand fontSize 1/3/5/7 con snapshot/restore de selección; build OK; bundle con fontSize+selectedIndex; N/C/S intactos) — commit: — (pendiente orden "commit y push")
+- T3 [S3] inline — completado (openCreateDialog: `eventNoBg.checked = state.brushColor === ''`; default BRUSH_COLORS[0] intacto; build OK; bundle con `brushColor===""`) — commit: — (pendiente orden "commit y push")
+- T4 [S4] inline — completado (AppState.theme 'claro'|'oscuro' + normalización; toggle 🌙/☀️ en toolbar export-excluded; body[data-theme=oscuro] tras estaciones con --field-bg y overrides btn-primary/copy-btn/btn-danger; captura PNG hereda panel oscuro vía getComputedStyle) — commit: — (pendiente orden "commit y push")
+- T5 [S5] inline — completado (Tab/Shift+Tab alternan data-indent 0–3 en la línea actual vía currentNoteLine(); Enter hereda el nivel en el nuevo `<div>`; preventDefault solo dentro de #notes; CSS [data-indent] margin-left; build OK, bundle con shiftKey+dataset.indent) — commit: — (pendiente orden "commit y push")
+- T6 [S6] — cancelada (idea de festivos descartada por el usuario el 2026-11-04; código previo retirado)
+- T7 [S7] inline — completado (pila `undoStack` con tope 50 en `main.ts`; `pushUndo()` antes de crear/editar/borrar evento, crear/editar/borrar categoría, recolorear leyenda y mover por drag; `Ctrl+Z`/`Cmd+Z` ignora inputs/selects/textarea y `[contenteditable]` para no pisar el undo nativo de notas; build OK, test node de lógica de fechas OK) — commit: — (pendiente orden "commit y push")
+- T8 [S8] inline — completado (`draggable` en chips/fill/continuación; `dragstart`/`dragover`/`dragleave`/`drop` delegados en `#grid`; clase `.drop-target`; soltar mueve `date` y desplaza `endDate` si hay rango; el clic normal sigue abriendo edición; build OK) — commit: — (pendiente orden "commit y push")
+- T9 [S9] inline — completado (`CalendarEvent.endDate`; campo "Hasta (opcional)" en el diálogo; `occurrenceStartFor` puro en `calendar.ts`; día de inicio con chip/fill y días siguientes con barra `.event-continuation`; rangos que cruzan mes se pintan por celda; test node OK) — commit: — (pendiente orden "commit y push")
+- T10 [S10] inline — completado (`CalendarEvent.recurrence` 'semanal' | 'mensual'; campo "Repetir" en el diálogo; expansión por mes visible en `occurrenceStartFor` —semanal = mismo día de semana, mensual = mismo día del mes, 31 se omite en meses cortos—; editar/borrar usa el id de la serie; test node OK) — commit: — (pendiente orden "commit y push")
+- T11 [S11] inline — pendiente (Linux, AL FINAL por pedido explícito del usuario; sin tocar en esta sesión) — commit: —
+
+## Log
+
+L1 (2026-11-01) — "Qué ideas tenemos en el tintero?"
+L2 (2026-11-01) — "Quiero meter más ideas para más adelante"
+L3 (2026-11-01) — "Quiero la posibilidad de crear eventos que duren varios días. Además me gustan las ideas que planteas en la sección de eventos. [...] El modo oscuro me gusta. La idea de deshacer me gusta. [...] Quiero que haya icono en la pestaña [Image 1] y en el .bat. Además quiero plantear hacer una versión del proyecto en linux"
+L4 (2026-11-01) — "Descarta la idea del link. Además, la idea de sublistas me gusta, para ello quiero usar la TAB. Por último me gusta la idea de crear un acceso directo al .bat para poder meterme imagen"
+L5 (2026-11-01) — "Las que están pendientes de decisión descartalas"
+L6 (2026-11-01) — "Por las de menor riesgo" → orden de implementación T1→T10, T11 al final.
+L7 (2026-11-01) — "Quiero dejar para el final la versión de linux. Enfócate en el resto de ideas"
+L8 (2026-11-01) — "Quiero que los festivos sean de España, Madrid en vez de argentina" → S6 reescrito (nacional España + Comunidad de Madrid).
+L9 (2026-11-01) — Corrección factual del orchestrador (error propio en S6): "Lunes de Pascua" NO es festivo nacional de España ni de la Comunidad de Madrid (sí lo es en Cataluña, C. Valenciana, Baleares, etc.). Los festivos móviles nacionales correctos son Jueves Santo (Pascua−3) y Viernes Santo (Pascua−2). S6 actualizado; lista final: 10 fijos nacionales + Jueves Santo + Viernes Santo + 2 de mayo (Comunidad de Madrid).
+L10 (2026-11-04) — "Quiero que siguas con la implementación de las ideas. Quiero que descartes la idea de los festivos y deja la implementación de linux pendiente" → S6/T6 descartadas (se borró `src/holidays.ts` y todo su cableado en `render.ts`, `state.ts`, `main.ts`, `index.html` y `style.css`); T7–T10 implementadas; T11 Linux sigue pendiente y al final.
+L11 (2026-11-04) — Verificación: `npm run build` OK (tsc + vite, exit 0); test node temporal fuera del repo (`occurrenceStartFor`, `addDaysISO`, `daysBetweenISO`, `isoWeekday`, `getMonthGrid`) OK; sin runner de tests ni automatización DOM en el repo, las interacciones (drag, Ctrl+Z, diálogo) quedan verificadas por build + revisión de código, no por test automatizado.

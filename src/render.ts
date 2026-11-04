@@ -1,6 +1,6 @@
 /** DOM rendering. Reads state, writes DOM. Never mutates state. */
 
-import { getMonthGrid, monthKey, MONTHS_ES, WEEKDAYS_ES } from './calendar';
+import { getMonthGrid, monthKey, MONTHS_ES, occurrenceStartFor, WEEKDAYS_ES } from './calendar';
 import { renderDecorations } from './decorations';
 import { BRUSH_COLORS, type AppState, type CalendarEvent } from './state';
 
@@ -52,13 +52,19 @@ export function renderBrush(state: AppState): void {
 function eventChip(ev: CalendarEvent): string {
   const time = ev.time ? `<small>${esc(ev.time)}</small>` : '';
   const style = ev.noBg ? 'style="background:transparent"' : `style="background:${esc(ev.color)}"`;
-  return `<button type="button" class="event-chip${ev.noBg ? ' event-no-bg' : ''}" data-event-id="${esc(ev.id)}" ${style} title="Editar: ${esc(stripTags(ev.title))}">${ev.title}${time}</button>`;
+  return `<button type="button" class="event-chip${ev.noBg ? ' event-no-bg' : ''}" data-event-id="${esc(ev.id)}" draggable="true" ${style} title="Editar: ${esc(stripTags(ev.title))}">${ev.title}${time}</button>`;
 }
 
-/** Whole-cell event (e.g. a holiday): transparent label over the painted cell. */
+/** Whole-cell (all-day) event: transparent label over the painted cell. */
 function fillLabel(ev: CalendarEvent): string {
   const time = ev.time ? `<small>${esc(ev.time)}</small>` : '';
-  return `<button type="button" class="fill-label" data-event-id="${esc(ev.id)}" title="Editar: ${esc(stripTags(ev.title))}">${ev.title}${time}</button>`;
+  return `<button type="button" class="fill-label" data-event-id="${esc(ev.id)}" draggable="true" title="Editar: ${esc(stripTags(ev.title))}">${ev.title}${time}</button>`;
+}
+
+/** Later day of a multi-day event: a slim bar, still clickable to edit. */
+function continuationBar(ev: CalendarEvent): string {
+  const style = ev.noBg ? 'style="background:transparent"' : `style="background:${esc(ev.color)}"`;
+  return `<span class="event-continuation${ev.noBg ? ' event-no-bg' : ''}" data-event-id="${esc(ev.id)}" draggable="true" ${style} title="Continúa: ${esc(stripTags(ev.title))}"></span>`;
 }
 
 export function renderGrid(state: AppState): void {
@@ -69,14 +75,22 @@ export function renderGrid(state: AppState): void {
     .map((week) =>
       week
         .map((cell) => {
-          // Whole-cell (all-day) events always render on top, regardless of
-          // creation order: fill labels first, then regular chips.
+          // Every event covering this day: multi-day ranges and recurring
+          // series included. The run's first day gets the chip/fill label,
+          // later days get a continuation bar. Whole-cell events always sort
+          // first, then run starts before continuation bars.
           const dayEvents = state.events
-            .filter((ev) => ev.date === cell.iso)
-            .sort((a, b) => Number(b.fill ?? false) - Number(a.fill ?? false));
-          const fillEvent = dayEvents.find((ev) => ev.fill);
+            .map((ev) => ({ ev, start: occurrenceStartFor(ev, cell.iso) }))
+            .filter((entry): entry is { ev: CalendarEvent; start: string } => entry.start !== null)
+            .map(({ ev, start }) => ({ ev, kind: start === cell.iso ? 'start' as const : 'middle' as const }));
+          dayEvents.sort(
+            (a, b) =>
+              Number(b.ev.fill ?? false) - Number(a.ev.fill ?? false) ||
+              Number(a.kind === 'middle') - Number(b.kind === 'middle'),
+          );
+          const fillEvent = dayEvents.find((entry) => entry.kind === 'start' && entry.ev.fill)?.ev;
           const eventsHtml = dayEvents
-            .map((ev) => (ev.fill ? fillLabel(ev) : eventChip(ev)))
+            .map(({ ev, kind }) => (kind === 'start' ? (ev.fill ? fillLabel(ev) : eventChip(ev)) : continuationBar(ev)))
             .join('');
           const classes = ['cell'];
           if (!cell.inMonth) classes.push('other-month');
@@ -123,8 +137,13 @@ export function renderNotes(state: AppState, force = false): void {
 
 export function applySeason(state: AppState): void {
   document.body.dataset.season = state.season;
+  document.body.dataset.theme = state.theme;
   const select = el<HTMLSelectElement>('season-select');
   if (select.value !== state.season) select.value = state.season;
+  const themeBtn = el<HTMLButtonElement>('theme-toggle');
+  const dark = state.theme === 'oscuro';
+  themeBtn.textContent = dark ? '☀️' : '🌙';
+  themeBtn.title = dark ? 'Modo claro' : 'Modo oscuro';
 }
 
 /** Full UI refresh from state. */

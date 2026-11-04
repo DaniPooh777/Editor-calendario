@@ -22,16 +22,22 @@ export interface CalendarEvent {
   /** Free text like "9:00". Optional. */
   time?: string;
   color: string;
-  /** When true the event paints the whole cell (e.g. a holiday). */
+  /** When true the event paints the whole cell (e.g. an all-day event). */
   fill?: boolean;
   /** When true the event renders with no background (just the text). */
   noBg?: boolean;
+  /** Optional last day (YYYY-MM-DD): the event spans every day in between. */
+  endDate?: string;
+  /** Optional repetition from `date`: same weekday or same day of the month. */
+  recurrence?: 'semanal' | 'mensual';
 }
 
 export interface AppState {
   year: number;
   monthIndex: number;
   season: 'primavera' | 'verano' | 'otono' | 'invierno';
+  /** UI theme; 'oscuro' flips the design tokens via body[data-theme]. */
+  theme: 'claro' | 'oscuro';
   /** Current brush color; '' means no color selected. */
   brushColor: string;
   /** Legend categories: one fixed list shared by every month. */
@@ -64,6 +70,7 @@ export function defaultState(): AppState {
     year: now.getFullYear(),
     monthIndex: now.getMonth(),
     season: 'otono',
+    theme: 'claro',
     brushColor: BRUSH_COLORS[0],
     categories: [],
     events: [],
@@ -120,9 +127,12 @@ function normalizeState(parsed: Partial<AppState> & {
     events: Array.isArray(parsed.events) ? parsed.events : [],
     notesByMonth,
     brushColor: typeof parsed.brushColor === 'string' ? parsed.brushColor : base.brushColor,
-  } as AppState & { notes?: unknown; categoriesByMonth?: unknown };
+    theme: parsed.theme === 'oscuro' ? 'oscuro' : 'claro',
+  } as AppState & { notes?: unknown; categoriesByMonth?: unknown; showHolidays?: unknown };
   delete merged.notes;
   delete merged.categoriesByMonth;
+  // Left over from the discarded preloaded-holidays feature.
+  delete merged.showHolidays;
   return merged;
 }
 

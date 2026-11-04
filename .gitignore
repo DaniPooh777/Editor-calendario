@@ -1,6 +1,7 @@
 node_modules
 dist
 *.local
+*.lnk
 .DS_Store
 datos-calendario.json
 datos-calendario.json.tmp

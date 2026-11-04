@@ -33,6 +33,63 @@ export function monthKey(year: number, monthIndex: number): string {
   return `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
 }
 
+/** Local Date from a YYYY-MM-DD key (never via UTC parsing). */
+function parseISO(iso: string): Date {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/** Shift an ISO key by whole days. */
+export function addDaysISO(iso: string, days: number): string {
+  const date = parseISO(iso);
+  date.setDate(date.getDate() + days);
+  return toISO(date);
+}
+
+/** Whole days from `from` to `to` (positive when `to` is later). */
+export function daysBetweenISO(from: string, to: string): number {
+  // Midnight to midnight; Math.round absorbs DST days of 23/25 hours.
+  return Math.round((parseISO(to).getTime() - parseISO(from).getTime()) / 86_400_000);
+}
+
+/** Monday-based weekday of an ISO key: 0 = Monday … 6 = Sunday. */
+export function isoWeekday(iso: string): number {
+  return (parseISO(iso).getDay() + 6) % 7;
+}
+
+/** Minimal event shape needed to expand multi-day and recurring events. */
+export interface EventSpan {
+  date: string;
+  endDate?: string;
+  recurrence?: 'semanal' | 'mensual';
+}
+
+/** Does `iso` start an occurrence of the event (respecting recurrence)? */
+function isOccurrenceStart(span: EventSpan, iso: string): boolean {
+  if (!span.recurrence) return iso === span.date;
+  if (span.recurrence === 'semanal') return isoWeekday(iso) === isoWeekday(span.date);
+  return iso.slice(8) === span.date.slice(8); // same day of the month
+}
+
+/**
+ * Start day of the occurrence that covers `iso`, or null when the event does
+ * not reach that day. Repeated series look back at most one period (a week or
+ * a month): that finds the covering run and keeps rendering bounded.
+ */
+export function occurrenceStartFor(span: EventSpan, iso: string): string | null {
+  const duration = span.endDate && span.endDate > span.date ? daysBetweenISO(span.date, span.endDate) : 0;
+  if (!span.recurrence) {
+    return iso >= span.date && iso <= addDaysISO(span.date, duration) ? span.date : null;
+  }
+  const lookback = span.recurrence === 'semanal' ? 7 : 31;
+  for (let back = 0; back <= Math.min(duration, lookback); back++) {
+    const start = addDaysISO(iso, -back);
+    if (start < span.date) return null;
+    if (isOccurrenceStart(span, start)) return start;
+  }
+  return null;
+}
+
 /**
  * Build the Monday-first grid for a month.
  * Returns 5 or 6 weeks of 7 DayCells, including leading/trailing

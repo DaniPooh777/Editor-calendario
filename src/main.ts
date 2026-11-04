@@ -2,7 +2,7 @@
 
 import './style.css';
 import { copyCalendarImage } from './capture';
-import { monthKey } from './calendar';
+import { addDaysISO, daysBetweenISO, monthKey } from './calendar';
 import { renderAll, renderBrush, renderGrid, renderNotes, renderTitle, stripTags } from './render';
 import {
   BRUSH_COLORS,
@@ -29,6 +29,40 @@ function commit(): void {
   renderAll(state);
 }
 
+// ---------------------------------------------------------------------------
+// Undo for events and legend (Ctrl+Z). Notes keep their native text undo.
+// ---------------------------------------------------------------------------
+
+interface UndoSnapshot {
+  events: CalendarEvent[];
+  categories: Category[];
+}
+
+const UNDO_LIMIT = 50;
+const undoStack: UndoSnapshot[] = [];
+
+/** Snapshot events + categories before a mutation so Ctrl+Z can revert it. */
+function pushUndo(): void {
+  undoStack.push({
+    events: JSON.parse(JSON.stringify(state.events)) as CalendarEvent[],
+    categories: JSON.parse(JSON.stringify(state.categories)) as Category[],
+  });
+  if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.key.toLowerCase() !== 'z') return;
+  const target = e.target as HTMLElement | null;
+  // Inputs, selects and the notes area keep their own native undo.
+  if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+  const snapshot = undoStack.pop();
+  if (!snapshot) return;
+  e.preventDefault();
+  state.events = snapshot.events;
+  state.categories = snapshot.categories;
+  commit();
+});
+
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
   if (!node) throw new Error(`Missing element #${id}`);
@@ -37,8 +71,12 @@ function el<T extends HTMLElement>(id: string): T {
 
 /** Shared N/C/S toolbar wiring for any contenteditable area. */
 function wireFormatToolbar(toolbar: HTMLElement, editable: HTMLElement, onPersist: () => void): void {
-  // Keep the text selection alive when a format button is pressed.
-  toolbar.addEventListener('mousedown', (e) => e.preventDefault());
+  // Keep the text selection alive when a format button is pressed. Selects are
+  // excluded: they need their native mousedown to open the dropdown.
+  toolbar.addEventListener('mousedown', (e) => {
+    if ((e.target as HTMLElement).closest('select')) return;
+    e.preventDefault();
+  });
   toolbar.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-cmd]');
     if (!btn?.dataset.cmd) return;
@@ -49,6 +87,39 @@ function wireFormatToolbar(toolbar: HTMLElement, editable: HTMLElement, onPersis
     document.execCommand(btn.dataset.cmd);
     onPersist();
   });
+
+  // Font-size presets (Chica/Normal/Grande/Muy grande → fontSize 1/3/5/7).
+  // Clicking the select blurs the editable, so the selection is snapshotted on
+  // mousedown and restored before execCommand applies the size to it.
+  const sizeSelect = toolbar.querySelector<HTMLSelectElement>('.notes-font-size');
+  if (sizeSelect) {
+    let savedRange: Range | null = null;
+    sizeSelect.addEventListener('mousedown', () => {
+      const sel = document.getSelection();
+      if (sel?.rangeCount && editable.contains(sel.anchorNode)) {
+        savedRange = sel.getRangeAt(0).cloneRange();
+      }
+    });
+    sizeSelect.addEventListener('change', () => {
+      const value = sizeSelect.value;
+      sizeSelect.selectedIndex = 0; // back to the "Tamaño" placeholder
+      if (!value) return;
+      const sel = document.getSelection();
+      if (savedRange && sel) {
+        sel.removeAllRanges();
+        sel.addRange(savedRange);
+      }
+      if (!editable.contains(sel?.anchorNode ?? null)) {
+        editable.focus();
+        if (savedRange && sel) {
+          sel.removeAllRanges();
+          sel.addRange(savedRange);
+        }
+      }
+      document.execCommand('fontSize', false, value);
+      onPersist();
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -57,6 +128,11 @@ function wireFormatToolbar(toolbar: HTMLElement, editable: HTMLElement, onPersis
 
 el<HTMLSelectElement>('season-select').addEventListener('change', (e) => {
   state.season = (e.target as HTMLSelectElement).value as AppState['season'];
+  commit();
+});
+
+el<HTMLButtonElement>('theme-toggle').addEventListener('click', () => {
+  state.theme = state.theme === 'oscuro' ? 'claro' : 'oscuro';
   commit();
 });
 
@@ -120,6 +196,8 @@ const eventForm = el<HTMLFormElement>('event-form');
 const eventIso = el<HTMLInputElement>('event-iso');
 const eventId = el<HTMLInputElement>('event-id');
 const eventTime = el<HTMLInputElement>('event-time');
+const eventEnd = el<HTMLInputElement>('event-end');
+const eventRecurrence = el<HTMLSelectElement>('event-recurrence');
 const eventColor = el<HTMLInputElement>('event-color');
 const eventFill = el<HTMLInputElement>('event-fill');
 const eventNoBg = el<HTMLInputElement>('event-nobg');
@@ -136,7 +214,10 @@ function openCreateDialog(iso: string): void {
   eventHeading.textContent = 'Nuevo evento';
   eventColor.value = state.brushColor || BRUSH_COLORS[0];
   eventFill.checked = false;
-  eventNoBg.checked = false;
+  // Brush ✕ (no colour) means "no background": pre-check the noBg box.
+  eventNoBg.checked = state.brushColor === '';
+  eventEnd.value = '';
+  eventRecurrence.value = '';
   eventDelete.hidden = true;
   eventDialog.showModal();
   eventTitle.focus();
@@ -152,6 +233,8 @@ function openEditDialog(ev: CalendarEvent): void {
   eventColor.value = ev.color;
   eventFill.checked = ev.fill === true;
   eventNoBg.checked = ev.noBg === true;
+  eventEnd.value = ev.endDate ?? '';
+  eventRecurrence.value = ev.recurrence ?? '';
   eventHeading.textContent = 'Editar evento';
   eventDelete.hidden = false;
   eventDialog.showModal();
@@ -166,7 +249,12 @@ eventForm.addEventListener('submit', (e) => {
     return;
   }
   const time = eventTime.value.trim();
+  // "Hasta" only counts when it is after the start day (YYYY-MM-DD compares
+  // lexicographically). A single-day event leaves endDate undefined.
+  const endDate = eventEnd.value && eventEnd.value > eventIso.value ? eventEnd.value : undefined;
+  const recurrence = (eventRecurrence.value || undefined) as CalendarEvent['recurrence'];
 
+  pushUndo();
   if (editingEventId) {
     const ev = state.events.find((x) => x.id === editingEventId);
     if (ev) {
@@ -175,6 +263,8 @@ eventForm.addEventListener('submit', (e) => {
       ev.color = eventColor.value;
       ev.fill = eventFill.checked ? true : undefined;
       ev.noBg = eventNoBg.checked ? true : undefined;
+      ev.endDate = endDate;
+      ev.recurrence = recurrence;
     }
   } else {
     state.events.push({
@@ -185,6 +275,8 @@ eventForm.addEventListener('submit', (e) => {
       color: eventColor.value,
       fill: eventFill.checked ? true : undefined,
       noBg: eventNoBg.checked ? true : undefined,
+      endDate,
+      recurrence,
     });
   }
 
@@ -194,6 +286,7 @@ eventForm.addEventListener('submit', (e) => {
 
 eventDelete.addEventListener('click', () => {
   if (!editingEventId) return;
+  pushUndo();
   state.events = state.events.filter((x) => x.id !== editingEventId);
   eventDialog.close();
   commit();
@@ -202,7 +295,9 @@ eventDelete.addEventListener('click', () => {
 el('event-cancel').addEventListener('click', () => eventDialog.close());
 
 // Cell and chip clicks (delegated on the grid).
-el('grid').addEventListener('click', (e) => {
+const gridEl = el('grid');
+
+gridEl.addEventListener('click', (e) => {
   const chip = (e.target as HTMLElement).closest<HTMLElement>('[data-event-id]');
   if (chip) {
     const ev = state.events.find((x) => x.id === chip.dataset.eventId);
@@ -211,6 +306,67 @@ el('grid').addEventListener('click', (e) => {
   }
   const cell = (e.target as HTMLElement).closest<HTMLElement>('[data-iso]');
   if (cell?.dataset.iso) openCreateDialog(cell.dataset.iso);
+});
+
+// Drag & drop: grab a chip (or a continuation bar) and drop it on another
+// day. A range keeps its length: the whole block shifts by the same delta.
+let draggedEventId = '';
+let draggedFromIso = '';
+
+gridEl.addEventListener('dragstart', (e) => {
+  const item = (e.target as HTMLElement).closest<HTMLElement>('[data-event-id]');
+  if (!item?.dataset.eventId) {
+    e.preventDefault();
+    return;
+  }
+  draggedEventId = item.dataset.eventId;
+  draggedFromIso = item.closest<HTMLElement>('[data-iso]')?.dataset.iso ?? '';
+  item.classList.add('dragging');
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', draggedEventId);
+  }
+});
+
+gridEl.addEventListener('dragend', () => {
+  draggedEventId = '';
+  draggedFromIso = '';
+  gridEl.querySelectorAll('.dragging, .drop-target').forEach((node) => {
+    node.classList.remove('dragging', 'drop-target');
+  });
+});
+
+gridEl.addEventListener('dragover', (e) => {
+  const cell = (e.target as HTMLElement).closest<HTMLElement>('[data-iso]');
+  if (!cell || !draggedEventId) return;
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+  cell.classList.add('drop-target');
+});
+
+gridEl.addEventListener('dragleave', (e) => {
+  const cell = (e.target as HTMLElement).closest<HTMLElement>('[data-iso]');
+  if (!cell) return;
+  // Ignore transitions between descendants of the same cell.
+  const related = e.relatedTarget as Node | null;
+  if (related && cell.contains(related)) return;
+  cell.classList.remove('drop-target');
+});
+
+gridEl.addEventListener('drop', (e) => {
+  const cell = (e.target as HTMLElement).closest<HTMLElement>('[data-iso]');
+  if (!cell?.dataset.iso || !draggedEventId) return;
+  e.preventDefault();
+  cell.classList.remove('drop-target');
+  const ev = state.events.find((x) => x.id === draggedEventId);
+  const delta = draggedFromIso ? daysBetweenISO(draggedFromIso, cell.dataset.iso) : 0;
+  draggedEventId = '';
+  draggedFromIso = '';
+  if (!ev || delta === 0) return;
+  pushUndo();
+  ev.date = addDaysISO(ev.date, delta);
+  if (ev.endDate) ev.endDate = addDaysISO(ev.endDate, delta);
+  commit();
 });
 
 // ---------------------------------------------------------------------------
@@ -246,6 +402,7 @@ categoryForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const name = categoryName.value.trim();
   if (!name) return;
+  pushUndo();
   if (editingCategoryId) {
     const cat = state.categories.find((c) => c.id === editingCategoryId);
     if (cat) {
@@ -265,6 +422,7 @@ el('legend-items').addEventListener('click', (e) => {
   const target = e.target as HTMLElement;
   const deleteBtn = target.closest<HTMLElement>('[data-cat-delete]');
   if (deleteBtn?.dataset.catDelete) {
+    pushUndo();
     state.categories = state.categories.filter((c) => c.id !== deleteBtn.dataset.catDelete);
     commit();
     return;
@@ -277,6 +435,7 @@ el('legend-items').addEventListener('click', (e) => {
 
   // Click the colour swatch with a brush colour → recolour.
   if (target.closest('.legend-swatch') && state.brushColor) {
+    pushUndo();
     cat.color = state.brushColor;
     commit();
     return;
@@ -299,12 +458,39 @@ function persistNotes(): void {
 
 notesEl.addEventListener('input', persistNotes);
 
-// Enter starts a new dashed item instead of a bare line break, and the
-// spacing between items is tighter than a soft wrap (see .notes-area div).
+// Top-level line div inside #notes that contains the caret (or null).
+function currentNoteLine(): HTMLElement | null {
+  let node: Node | null = document.getSelection()?.anchorNode ?? null;
+  while (node && node !== notesEl) {
+    if (node.parentNode === notesEl && node.nodeType === Node.ELEMENT_NODE) {
+      return node as HTMLElement;
+    }
+    node = node.parentNode;
+  }
+  return null;
+}
+
+// Tab / Shift+Tab indent the current line inside the notes only; outside the
+// notes this listener never fires, so native focus navigation stays intact.
+// Enter starts a new dashed item instead of a bare line break, inheriting the
+// indent level of the line it follows (see .notes-area div / [data-indent]).
 notesEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    e.preventDefault(); // never move focus out of the contenteditable
+    const line = currentNoteLine();
+    if (!line) return;
+    const level = Number(line.dataset.indent ?? '0');
+    const next = e.shiftKey ? Math.max(0, level - 1) : Math.min(3, level + 1);
+    if (next === 0) delete line.dataset.indent;
+    else line.dataset.indent = String(next);
+    persistNotes();
+    return;
+  }
   if (e.key !== 'Enter' || e.shiftKey) return;
   e.preventDefault();
-  document.execCommand('insertHTML', false, '<div>-&nbsp;</div>');
+  const prevIndent = currentNoteLine()?.dataset.indent;
+  const attr = prevIndent ? ` data-indent="${prevIndent}"` : '';
+  document.execCommand('insertHTML', false, `<div${attr}>-&nbsp;</div>`);
 });
 
 wireFormatToolbar(el('notes-toolbar'), notesEl, persistNotes);

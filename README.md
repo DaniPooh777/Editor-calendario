@@ -77,15 +77,9 @@ Las decoraciones se reparten sobre toda la grilla y no se exportan al PNG: la ca
 
 ---
 
-## 📸 Capturas
+## 📸 Captura
 
 [![Vista principal con eventos y leyenda](docs/imagenes/01-vista-principal.png)](docs/imagenes/01-vista-principal.png)
-
-[![Calendario de otoño](docs/imagenes/02-otono.png)](docs/imagenes/02-otono.png)
-
-[![Diálogo para crear un evento](docs/imagenes/03-dialogo-evento.png)](docs/imagenes/03-dialogo-evento.png)
-
-[![Copia limpia del calendario lista para compartir](docs/imagenes/04-copia-limpia.png)](docs/imagenes/04-copia-limpia.png)
 
 ---
 

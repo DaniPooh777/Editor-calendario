@@ -1,6 +1,6 @@
 # Mejoras aprobadas del tintero — Editor de Calendario
 
-Objetivo: implementar las 9 ideas vigentes del brainstorming del 2026-11-01 (los festivos se descartaron el 2026-11-04), de menor a mayor riesgo, con la versión Linux al final (pedido explícito).
+Objetivo: implementar las 9 ideas vigentes del brainstorming del 2026-11-01 (los festivos se descartaron el 2026-11-04) más el selector nativo de hora pedido el 2026-11-04, de menor a mayor riesgo, con la versión Linux al final (pedido explícito).
 Entrega: main directo bajo orden explícito del usuario ("commit y push"), sin PR; si se superan ~400 líneas autorizadas se divide en varios commits work-unit ordenados.
 Tests: el repo no tiene framework de tests — verificación por tarea = `npm run build` (tsc + vite) + comprobación funcional puntual (script node en tmp cuando hay lógica pura). Excepción test-first registrada por no existir runner.
 
@@ -52,8 +52,10 @@ Checks: arrastrar cambia la fecha y sobrevive recarga; click sin arrastrar abre 
 
 ### S9 — Eventos multi-día
 Cita usuario: "Quiero la posibilidad de crear eventos que duren varios días."
-- `CalendarEvent.endDate?` opcional; el diálogo acepta "Hasta"; el evento se pinta en todo el rango dentro del mes visible (decisión de render inline: inicio con chip + continuación visual en días siguientes).
-Checks: rango visible día a día; editar/eliminar desde el rango; persistencia y captura.
+Cita usuario (2026-11-04, manda): "Además quiero que los eventos multidia estén situados encima de los demás eventos y que esté pegado arriba"
+- `CalendarEvent.endDate?` opcional; el diálogo acepta "Hasta"; el evento se pinta en todo el rango dentro del mes visible (inicio con chip + continuación visual en días siguientes).
+- El bloque multi-día va en una franja propia (`.cell-allday`) pegada al borde superior de la celda, por encima del resto de eventos; las barras de continuación quedan alineadas entre días.
+Checks: rango visible día a día; editar/eliminar desde el rango; persistencia y captura; multi-día arriba y pegado al borde con otros eventos centrados debajo.
 
 ### S10 — Eventos recurrentes
 Cita (aprobada en sección eventos): "Eventos recurrentes — 'cada lunes', semanal o mensual, sin crearlos uno por uno."
@@ -64,6 +66,12 @@ Checks: expansión correcta en cualquier mes; persistencia; captura.
 Cita usuario: "Quiero dejar para el final la versión de linux."
 - `abrir-calendario.sh` equivalente al `.bat` (node server.mjs + xdg-open, liberar puerto 5173), permisos +x, nota en README.
 Checks: `bash -n` sin errores; estructura equivalente al `.bat`.
+
+### S12 — Selector nativo de hora y minutos (2026-11-04)
+Cita usuario: "Quiero que en la sección de hora hagas un desplegable como el calendario [Image 2] pero para las horas. Así se puede elegir horas y minutos"
+- "Hora (opcional)" pasa de texto libre a `<input type="time" step="60">`: el selector nativo de horas y minutos, igual que el `<input type="date">` de "Hasta".
+- Los valores viejos de texto libre ("9:00", "9.00 am") se normalizan a `HH:MM` al abrir el diálogo con `toTimeInputValue` (calendar.ts), para no perder la hora al editar.
+Checks: elegir hora y minutos actualiza el campo; "9:00" viejo se muestra como "09:00"; guardar persiste `HH:MM`; build OK; test node de `toTimeInputValue` OK.
 
 ### Excluido (decisiones del usuario, no implementar)
 "Descarta la idea del link." · "Las que están pendientes de decisión descartalas" → sin compartir por URL, vista anual, duplicar mes, salto directo, paleta personalizable, PDF, backup manual, cuenta regresiva.
@@ -83,6 +91,8 @@ Ruta de todas: inline (superficies compartidas `main.ts`/`index.html`/`style.css
 - T9 [S9] inline — completado (`CalendarEvent.endDate`; campo "Hasta (opcional)" en el diálogo; `occurrenceStartFor` puro en `calendar.ts`; día de inicio con chip/fill y días siguientes con barra `.event-continuation`; rangos que cruzan mes se pintan por celda; test node OK) — commit: a93896e
 - T10 [S10] inline — completado (`CalendarEvent.recurrence` 'semanal' | 'mensual'; campo "Repetir" en el diálogo; expansión por mes visible en `occurrenceStartFor` —semanal = mismo día de semana, mensual = mismo día del mes, 31 se omite en meses cortos—; editar/borrar usa el id de la serie; test node OK) — commit: a93896e
 - T11 [S11] inline — pendiente (Linux, AL FINAL por pedido explícito del usuario; sin tocar en esta sesión) — commit: —
+- T12 [S12] inline — completado (input type=time step=60; `toTimeInputValue` normaliza valores legados al abrir el diálogo; color-scheme dark para los pickers nativos; build y test node OK) — commit: 4bab93a
+- T13 [S9] inline — completado (franja `.cell-allday` con los multidía antes de `.cell-events`, `margin-top: 18px` bajo el número del día; el resto sigue centrado; build OK) — commit: 4bab93a
 
 ## Log
 
@@ -98,3 +108,5 @@ L9 (2026-11-01) — Corrección factual del orchestrador (error propio en S6): "
 L10 (2026-11-04) — "Quiero que siguas con la implementación de las ideas. Quiero que descartes la idea de los festivos y deja la implementación de linux pendiente" → S6/T6 descartadas (se borró `src/holidays.ts` y todo su cableado en `render.ts`, `state.ts`, `main.ts`, `index.html` y `style.css`); T7–T10 implementadas; T11 Linux sigue pendiente y al final.
 L11 (2026-11-04) — Verificación: `npm run build` OK (tsc + vite, exit 0); test node temporal fuera del repo (`occurrenceStartFor`, `addDaysISO`, `daysBetweenISO`, `isoWeekday`, `getMonthGrid`) OK; sin runner de tests ni automatización DOM en el repo, las interacciones (drag, Ctrl+Z, diálogo) quedan verificadas por build + revisión de código, no por test automatizado.
 L12 (2026-11-04) — Entrega: commit único `a93896e` y push a `origin/main` bajo la orden explícita "Comit y push". Fue un solo work-unit porque T1-T5 y T7-T10 comparten los mismos archivos (`index.html`, `main.ts`, `style.css`) y separarlos exigía staging por hunks artificial; el total supera apenas las ~400 líneas autorizadas.
+L13 (2026-11-04) — "Quiero que en la sección de hora hagas un desplegable como el calendario [Image 2] pero para las horas. Así se puede elegir horas y minutos" → S12/T12: `<input type="time">` con normalización de valores legados.
+L14 (2026-11-04) — "Además quiero que los eventos multidia estén situados encima de los demás eventos y que esté pegado arriba" → S9 actualizada, T13: franja superior propia para los multidía.

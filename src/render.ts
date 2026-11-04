@@ -67,6 +67,19 @@ function continuationBar(ev: CalendarEvent): string {
   return `<span class="event-continuation${ev.noBg ? ' event-no-bg' : ''}" data-event-id="${esc(ev.id)}" draggable="true" ${style} title="Continúa: ${esc(stripTags(ev.title))}"></span>`;
 }
 
+/** An event covering the cell, and whether this day starts its run. */
+interface DayEntry {
+  ev: CalendarEvent;
+  kind: 'start' | 'middle';
+  /** True when the event spans several days (endDate after the start). */
+  multiDay: boolean;
+}
+
+function renderEntry(entry: DayEntry): string {
+  if (entry.kind === 'middle') return continuationBar(entry.ev);
+  return entry.ev.fill ? fillLabel(entry.ev) : eventChip(entry.ev);
+}
+
 export function renderGrid(state: AppState): void {
   const grid = el('grid');
   const weeks = getMonthGrid(state.year, state.monthIndex);
@@ -77,29 +90,44 @@ export function renderGrid(state: AppState): void {
         .map((cell) => {
           // Every event covering this day: multi-day ranges and recurring
           // series included. The run's first day gets the chip/fill label,
-          // later days get a continuation bar. Whole-cell events always sort
-          // first, then run starts before continuation bars.
-          const dayEvents = state.events
-            .map((ev) => ({ ev, start: occurrenceStartFor(ev, cell.iso) }))
-            .filter((entry): entry is { ev: CalendarEvent; start: string } => entry.start !== null)
-            .map(({ ev, start }) => ({ ev, kind: start === cell.iso ? 'start' as const : 'middle' as const }));
-          dayEvents.sort(
-            (a, b) =>
-              Number(b.ev.fill ?? false) - Number(a.ev.fill ?? false) ||
-              Number(a.kind === 'middle') - Number(b.kind === 'middle'),
-          );
-          const fillEvent = dayEvents.find((entry) => entry.kind === 'start' && entry.ev.fill)?.ev;
-          const eventsHtml = dayEvents
-            .map(({ ev, kind }) => (kind === 'start' ? (ev.fill ? fillLabel(ev) : eventChip(ev)) : continuationBar(ev)))
+          // later days get a continuation bar.
+          const dayEntries: DayEntry[] = [];
+          for (const ev of state.events) {
+            const start = occurrenceStartFor(ev, cell.iso);
+            if (!start) continue;
+            dayEntries.push({
+              ev,
+              kind: start === cell.iso ? 'start' : 'middle',
+              multiDay: ev.endDate !== undefined && ev.endDate > ev.date,
+            });
+          }
+
+          // Multi-day events get their own strip pinned to the top of the cell,
+          // above the rest, so the bars form a continuous line across days.
+          const multiDayHtml = dayEntries
+            .filter((entry) => entry.multiDay)
+            .map(renderEntry)
             .join('');
+
+          // Whole-cell (all-day) events always render on top of regular chips
+          // inside the centred group, regardless of creation order.
+          const fillEvent = dayEntries.find((entry) => entry.kind === 'start' && entry.ev.fill)?.ev;
+          const eventsHtml = dayEntries
+            .filter((entry) => !entry.multiDay)
+            .sort((a, b) => Number(b.ev.fill ?? false) - Number(a.ev.fill ?? false))
+            .map(renderEntry)
+            .join('');
+
           const classes = ['cell'];
           if (!cell.inMonth) classes.push('other-month');
           if (fillEvent) classes.push('cell-filled');
           const fillStyle = fillEvent
             ? ` style="background:${fillEvent.noBg ? 'transparent' : esc(fillEvent.color)}"`
             : '';
+          const multiDayStrip = multiDayHtml ? `<div class="cell-allday">${multiDayHtml}</div>` : '';
           return `<div class="${classes.join(' ')}" data-iso="${cell.iso}"${fillStyle}>
             <span class="day-num">${cell.day}</span>
+            ${multiDayStrip}
             <div class="cell-events">${eventsHtml}</div>
           </div>`;
         })

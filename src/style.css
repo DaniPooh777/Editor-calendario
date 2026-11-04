@@ -68,6 +68,8 @@ body[data-theme='oscuro'] {
   --notes-bg: #26221b;
   --cell-hover: rgba(237, 228, 211, 0.07);
   --field-bg: #1c1a15;
+  /* Native date/time pickers follow the app theme. */
+  color-scheme: dark;
 }
 
 * {
@@ -422,6 +424,16 @@ body {
   justify-content: center; /* events centred vertically in the cell */
   gap: 4px;
   overflow-y: auto;
+}
+
+/* Multi-day events: own strip pinned to the top of the cell (below the day
+   number) and above the centred events, so the bars line up across days. */
+.cell-allday {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  gap: 4px;
+  margin-top: 18px;
 }
 
 .event-chip {

@@ -9,7 +9,7 @@ Está desarrollada con [Vite](https://vite.dev/) y [TypeScript](https://www.type
 | Categoría | Descripción |
 |-----------|-------------|
 | **Grilla mensual** | Vista de un mes completo, de lunes a domingo, con celdas editables y animación al pasar el cursor |
-| **Eventos** | Título, hora opcional, color; pueden ser de casilla completa o sin fondo (solo el texto) |
+| **Eventos** | Título, hora opcional con selector de horas y minutos, color; pueden ser de casilla completa o sin fondo (solo el texto) |
 | **Eventos de varios días** | Con "Hasta" el evento se pinta en todo el rango dentro del mes |
 | **Eventos recurrentes** | "Repetir" cada semana (mismo día) o cada mes (mismo día del mes) |
 | **Arrastrar y soltar** | Movés un evento de una casilla a otra; los rangos se desplazan enteros |

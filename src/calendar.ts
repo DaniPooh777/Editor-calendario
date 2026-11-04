@@ -57,6 +57,26 @@ export function isoWeekday(iso: string): number {
   return (parseISO(iso).getDay() + 6) % 7;
 }
 
+/**
+ * Map a legacy free-text time ("9:00", "9.00 am", "21:30") to the "HH:MM"
+ * value that <input type="time"> accepts. Returns '' when it cannot be mapped.
+ */
+export function toTimeInputValue(raw: string | undefined): string {
+  if (!raw) return '';
+  const match = raw.trim().match(/^(\d{1,2})(?:[:.,](\d{1,2}))?\s*([ap])?\.?\s*m?\.?$/i);
+  if (!match) return '';
+  let hours = Number(match[1]);
+  const minutes = Number(match[2] ?? '0');
+  const meridiem = match[3]?.toLowerCase();
+  if (meridiem) {
+    if (hours < 1 || hours > 12) return '';
+    hours = hours % 12;
+    if (meridiem === 'p') hours += 12;
+  }
+  if (hours > 23 || minutes > 59) return '';
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
 /** Minimal event shape needed to expand multi-day and recurring events. */
 export interface EventSpan {
   date: string;

@@ -2,7 +2,7 @@
 
 import './style.css';
 import { copyCalendarImage } from './capture';
-import { addDaysISO, daysBetweenISO, monthKey } from './calendar';
+import { addDaysISO, daysBetweenISO, monthKey, toTimeInputValue } from './calendar';
 import { renderAll, renderBrush, renderGrid, renderNotes, renderTitle, stripTags } from './render';
 import {
   BRUSH_COLORS,
@@ -229,7 +229,9 @@ function openEditDialog(ev: CalendarEvent): void {
   eventId.value = ev.id;
   // Titles are plain text now; strip tags left over from rich-title data.
   eventTitle.value = stripTags(ev.title);
-  eventTime.value = ev.time ?? '';
+  // The time field is a native hour/minute picker, so legacy free-text values
+  // ("9:00") are normalised to the "HH:MM" it accepts.
+  eventTime.value = toTimeInputValue(ev.time);
   eventColor.value = ev.color;
   eventFill.checked = ev.fill === true;
   eventNoBg.checked = ev.noBg === true;

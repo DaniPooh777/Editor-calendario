@@ -1,4 +1,4 @@
-[![Banner Editor Calendario Sencillo](docs/imagenes/banner_Github.jpg)](docs/imagenes/banner_Github.jpg)
+[![Banner Editor Calendario Sencillo](docs/imagenes/Banner_Github.jpg)](docs/imagenes/Banner_Github.jpg)
 
 **Editor Calendario** es una aplicación web para armar calendarios mensuales a mano, hecha pensando en planificar tareas de la universidad. Creas eventos, los pintas con colores, agregas leyendas y notas con formato, y al final copias el calendario completo como una imagen limpia para compartirlo.
 

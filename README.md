@@ -2,6 +2,15 @@
 
 # Editor Calendario
 
+<p align="center">
+  <a href="#qué-puedes-hacer">Qué puedes hacer</a> ·
+  <a href="#puesta-en-marcha">Puesta en marcha</a> ·
+  <a href="#cómo-se-usa">Cómo se usa</a> ·
+  <a href="#dónde-quedan-tus-datos">Tus datos</a> ·
+  <a href="#problemas-comunes">Problemas comunes</a> ·
+  <a href="#estructura-del-proyecto">Estructura</a>
+</p>
+
 **Editor Calendario** es una aplicación web para crear a mano el calendario del mes: escribes tus eventos, los pintas con colores, añades una leyenda y notas con formato, y al final copias el mes como una imagen limpia para compartirlo o imprimirlo.
 
 Nació como agenda de la universidad —asignaturas, entregas, exámenes, horarios—, pero sirve para cualquier mes que quieras organizar a tu manera.
@@ -18,7 +27,7 @@ Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta 
 
 ---
 
-## 📋 Qué puedes hacer
+## Qué puedes hacer
 
 | Función | Qué hace |
 |---------|----------|
@@ -40,7 +49,7 @@ Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta 
 
 ---
 
-## 🚀 Puesta en marcha
+## Puesta en marcha
 
 ### Lo que necesitas
 
@@ -75,7 +84,7 @@ El archivo lo hace todo: libera el puerto si ha quedado un servidor antiguo abie
 
 ---
 
-## 🖱️ Cómo se usa
+## Cómo se usa
 
 ### Navegación
 
@@ -125,7 +134,7 @@ Cada mes tiene su propio bloque de notas, con un guion al principio de cada lín
 
 ---
 
-## 💾 Dónde quedan tus datos
+## Dónde quedan tus datos
 
 Se guardan en dos sitios, y los dos son tuyos:
 
@@ -138,7 +147,7 @@ Para hacer una copia de seguridad, copia `datos-calendario.json`. Para llevarte 
 
 ---
 
-## 🎨 Estaciones
+## Estaciones
 
 Cada estación cambia la cara del calendario sin tocar tus eventos ni tus notas:
 
@@ -153,7 +162,7 @@ Las decoraciones se reparten sobre la cuadrícula y **no** aparecen en el PNG: l
 
 ---
 
-## 🔧 Problemas comunes
+## Problemas comunes
 
 | Síntoma | Solución |
 |---------|----------|
@@ -164,7 +173,7 @@ Las decoraciones se reparten sobre la cuadrícula y **no** aparecen en el PNG: l
 
 ---
 
-## 🗂️ Estructura del proyecto
+## Estructura del proyecto
 
 ```
 Editor calendario/
@@ -192,7 +201,7 @@ Editor calendario/
 
 ---
 
-## 🧱 Tecnología
+## Tecnología
 
 [Vite](https://vite.dev/) + [TypeScript](https://www.typescriptlang.org/) sin frameworks, y [html-to-image](https://github.com/bubkoo/html-to-image) para exportar el PNG. El servidor local usa solo módulos nativos de Node, sin dependencias extra.
 

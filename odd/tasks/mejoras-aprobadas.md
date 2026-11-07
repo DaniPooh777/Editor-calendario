@@ -110,7 +110,7 @@ Ruta de todas: inline (superficies compartidas `main.ts`/`index.html`/`style.css
 - T12 [S12] inline — completado (input type=time step=60; `toTimeInputValue` normaliza valores legados al abrir el diálogo; color-scheme dark para los pickers nativos; build y test node OK) — commit: 4bab93a
 - T13 [S9] inline — completado (franja `.cell-allday` con los multidía antes de `.cell-events`, `margin-top: 18px` bajo el número del día; el resto sigue centrado; build OK) — commit: 4bab93a
 - T14 [S13] inline — completado (`recurrenceDays?: number[]` con convención `isoWeekday`; siete toggles L–D visibles solo con "Cada semana"; al crear nace marcado el día de la fecha; `isOccurrenceStart` usa los días elegidos y cae al día de `date` cuando no hay ninguno; build OK y test node de `occurrenceStartFor` OK) — commit: 74011f1
-- T15 [S14] inline — completado (`recurrenceInterval?: number` con paridad en semanas de lunes; campo numérico "Cada (semanas)" 1–52 dentro del bloque semanal; `isWeeklyOccurrence` combina días elegidos + intervalo; mensual intacto; build OK y test node de 24 casos OK) — commit: PENDING
+- T15 [S14] inline — completado (`recurrenceInterval?: number` con paridad en semanas de lunes; campo numérico "Cada (semanas)" 1–52 dentro del bloque semanal; `isWeeklyOccurrence` combina días elegidos + intervalo; mensual intacto; build OK y test node de 24 casos OK) — commit: 3e002fd
 
 ## Log
 

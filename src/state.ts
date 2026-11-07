@@ -30,6 +30,11 @@ export interface CalendarEvent {
   endDate?: string;
   /** Optional repetition from `date`: same weekday or same day of the month. */
   recurrence?: 'semanal' | 'mensual';
+  /**
+   * Weekdays a weekly series lands on, `isoWeekday` style (0 = Monday … 6 =
+   * Sunday). Empty or missing keeps the old rule: the weekday of `date`.
+   */
+  recurrenceDays?: number[];
 }
 
 export interface AppState {

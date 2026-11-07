@@ -82,12 +82,19 @@ export interface EventSpan {
   date: string;
   endDate?: string;
   recurrence?: 'semanal' | 'mensual';
+  /** Weekdays a weekly series lands on, 0 = Monday … 6 = Sunday. */
+  recurrenceDays?: number[];
 }
 
 /** Does `iso` start an occurrence of the event (respecting recurrence)? */
 function isOccurrenceStart(span: EventSpan, iso: string): boolean {
   if (!span.recurrence) return iso === span.date;
-  if (span.recurrence === 'semanal') return isoWeekday(iso) === isoWeekday(span.date);
+  if (span.recurrence === 'semanal') {
+    const days = span.recurrenceDays;
+    // Picked weekdays win; an empty selection keeps "same weekday as `date`".
+    if (days && days.length) return days.includes(isoWeekday(iso));
+    return isoWeekday(iso) === isoWeekday(span.date);
+  }
   return iso.slice(8) === span.date.slice(8); // same day of the month
 }
 

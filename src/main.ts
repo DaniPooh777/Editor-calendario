@@ -2,7 +2,7 @@
 
 import './style.css';
 import { copyCalendarImage } from './capture';
-import { addDaysISO, daysBetweenISO, monthKey, toTimeInputValue } from './calendar';
+import { addDaysISO, daysBetweenISO, isoWeekday, monthKey, toISO, toTimeInputValue } from './calendar';
 import { renderAll, renderBrush, renderGrid, renderNotes, renderTitle, stripTags } from './render';
 import {
   BRUSH_COLORS,
@@ -198,12 +198,47 @@ const eventId = el<HTMLInputElement>('event-id');
 const eventTime = el<HTMLInputElement>('event-time');
 const eventEnd = el<HTMLInputElement>('event-end');
 const eventRecurrence = el<HTMLSelectElement>('event-recurrence');
+const eventDaysField = el<HTMLDivElement>('event-days-field');
+const eventDayInputs = Array.from(
+  document.querySelectorAll<HTMLInputElement>('#event-days input[type="checkbox"]'),
+);
 const eventColor = el<HTMLInputElement>('event-color');
 const eventFill = el<HTMLInputElement>('event-fill');
 const eventNoBg = el<HTMLInputElement>('event-nobg');
 const eventTitle = el<HTMLInputElement>('event-title');
 const eventDelete = el<HTMLButtonElement>('event-delete');
 const eventHeading = el('event-dialog-heading');
+
+/** Weekday of the dialog's start day (0 = Monday … 6 = Sunday). */
+function dialogStartWeekday(): number {
+  return isoWeekday(eventIso.value || toISO(new Date()));
+}
+
+/** Picked weekdays, ascending; [] means "the weekday of the start day". */
+function checkedRecurrenceDays(): number[] {
+  return eventDayInputs
+    .filter((input) => input.checked)
+    .map((input) => Number(input.value))
+    .sort((a, b) => a - b);
+}
+
+function setRecurrenceDays(days: number[]): void {
+  for (const input of eventDayInputs) input.checked = days.includes(Number(input.value));
+}
+
+/**
+ * The weekday toggles only make sense for a weekly series. Prefilling keeps a
+ * freshly switched "Cada semana" equal to the old rule: the start weekday.
+ */
+function syncRecurrenceDaysField(prefillWhenEmpty: boolean): void {
+  const weekly = eventRecurrence.value === 'semanal';
+  eventDaysField.hidden = !weekly;
+  if (weekly && prefillWhenEmpty && checkedRecurrenceDays().length === 0) {
+    setRecurrenceDays([dialogStartWeekday()]);
+  }
+}
+
+eventRecurrence.addEventListener('change', () => syncRecurrenceDaysField(true));
 
 function openCreateDialog(iso: string): void {
   editingEventId = '';
@@ -218,6 +253,8 @@ function openCreateDialog(iso: string): void {
   eventNoBg.checked = state.brushColor === '';
   eventEnd.value = '';
   eventRecurrence.value = '';
+  setRecurrenceDays([]);
+  syncRecurrenceDaysField(false);
   eventDelete.hidden = true;
   eventDialog.showModal();
   eventTitle.focus();
@@ -237,6 +274,9 @@ function openEditDialog(ev: CalendarEvent): void {
   eventNoBg.checked = ev.noBg === true;
   eventEnd.value = ev.endDate ?? '';
   eventRecurrence.value = ev.recurrence ?? '';
+  // Series saved before the weekday picker fall back to the start weekday.
+  setRecurrenceDays(ev.recurrenceDays ?? []);
+  syncRecurrenceDaysField(true);
   eventHeading.textContent = 'Editar evento';
   eventDelete.hidden = false;
   eventDialog.showModal();
@@ -255,6 +295,10 @@ eventForm.addEventListener('submit', (e) => {
   // lexicographically). A single-day event leaves endDate undefined.
   const endDate = eventEnd.value && eventEnd.value > eventIso.value ? eventEnd.value : undefined;
   const recurrence = (eventRecurrence.value || undefined) as CalendarEvent['recurrence'];
+  // Picked weekdays only apply to a weekly series; an empty pick keeps the
+  // start weekday, which is what "Cada semana" always meant.
+  const pickedDays = recurrence === 'semanal' ? checkedRecurrenceDays() : [];
+  const recurrenceDays = pickedDays.length ? pickedDays : undefined;
 
   pushUndo();
   if (editingEventId) {
@@ -267,6 +311,7 @@ eventForm.addEventListener('submit', (e) => {
       ev.noBg = eventNoBg.checked ? true : undefined;
       ev.endDate = endDate;
       ev.recurrence = recurrence;
+      ev.recurrenceDays = recurrenceDays;
     }
   } else {
     state.events.push({
@@ -279,6 +324,7 @@ eventForm.addEventListener('submit', (e) => {
       noBg: eventNoBg.checked ? true : undefined,
       endDate,
       recurrence,
+      recurrenceDays,
     });
   }
 
@@ -368,6 +414,11 @@ gridEl.addEventListener('drop', (e) => {
   pushUndo();
   ev.date = addDaysISO(ev.date, delta);
   if (ev.endDate) ev.endDate = addDaysISO(ev.endDate, delta);
+  // A picked-day series follows the drag too: shifting the anchor by N days
+  // without shifting the weekdays would move the start out of its own series.
+  if (ev.recurrenceDays?.length) {
+    ev.recurrenceDays = ev.recurrenceDays.map((day) => (((day + delta) % 7) + 7) % 7).sort((a, b) => a - b);
+  }
   commit();
 });
 

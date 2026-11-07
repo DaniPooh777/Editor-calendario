@@ -73,6 +73,14 @@ Cita usuario: "Quiero que en la sección de hora hagas un desplegable como el ca
 - Los valores viejos de texto libre ("9:00", "9.00 am") se normalizan a `HH:MM` al abrir el diálogo con `toTimeInputValue` (calendar.ts), para no perder la hora al editar.
 Checks: elegir hora y minutos actualiza el campo; "9:00" viejo se muestra como "09:00"; guardar persiste `HH:MM`; build OK; test node de `toTimeInputValue` OK.
 
+### S13 — Recurrencia por días de la semana (2026-11-04)
+Cita usuario: "Quiero más opciones de repetir eventos (como elegir qué días de la sema…" (pedido truncado al guardarse; la parte nombrada es elegir días de la semana).
+- `CalendarEvent.recurrenceDays?: number[]` con la convención de `isoWeekday` (0 = lunes … 6 = domingo).
+- El diálogo muestra siete toggles L M X J V S D, visibles solo cuando "Repetir" es `semanal`; si no hay ninguno marcado se conserva el comportamiento previo (mismo día de la semana que `date`).
+- Al crear un evento semanal, el día de la fecha nace marcado; al editarlo se restauran sus días guardados.
+- `isOccurrenceStart` usa los días marcados cuando existen; editar/borrar sigue afectando la serie completa.
+Checks: una serie con L+X+V pinta los tres días en cualquier mes; sin días marcados se pinta solo el día de `date`; `recurrenceDays` se descarta si la repetición no es semanal; build OK; test node de `occurrenceStartFor` OK.
+
 ### Excluido (decisiones del usuario, no implementar)
 "Descarta la idea del link." · "Las que están pendientes de decisión descartalas" → sin compartir por URL, vista anual, duplicar mes, salto directo, paleta personalizable, PDF, backup manual, cuenta regresiva.
 
@@ -93,6 +101,7 @@ Ruta de todas: inline (superficies compartidas `main.ts`/`index.html`/`style.css
 - T11 [S11] inline — pendiente (Linux, AL FINAL por pedido explícito del usuario; sin tocar en esta sesión) — commit: —
 - T12 [S12] inline — completado (input type=time step=60; `toTimeInputValue` normaliza valores legados al abrir el diálogo; color-scheme dark para los pickers nativos; build y test node OK) — commit: 4bab93a
 - T13 [S9] inline — completado (franja `.cell-allday` con los multidía antes de `.cell-events`, `margin-top: 18px` bajo el número del día; el resto sigue centrado; build OK) — commit: 4bab93a
+- T14 [S13] inline — completado (`recurrenceDays?: number[]` con convención `isoWeekday`; siete toggles L–D visibles solo con "Cada semana"; al crear nace marcado el día de la fecha; `isOccurrenceStart` usa los días elegidos y cae al día de `date` cuando no hay ninguno; build OK y test node de `occurrenceStartFor` OK) — commit: PENDING
 
 ## Log
 
@@ -110,3 +119,5 @@ L11 (2026-11-04) — Verificación: `npm run build` OK (tsc + vite, exit 0); tes
 L12 (2026-11-04) — Entrega: commit único `a93896e` y push a `origin/main` bajo la orden explícita "Comit y push". Fue un solo work-unit porque T1-T5 y T7-T10 comparten los mismos archivos (`index.html`, `main.ts`, `style.css`) y separarlos exigía staging por hunks artificial; el total supera apenas las ~400 líneas autorizadas.
 L13 (2026-11-04) — "Quiero que en la sección de hora hagas un desplegable como el calendario [Image 2] pero para las horas. Así se puede elegir horas y minutos" → S12/T12: `<input type="time">` con normalización de valores legados.
 L14 (2026-11-04) — "Además quiero que los eventos multidia estén situados encima de los demás eventos y que esté pegado arriba" → S9 actualizada, T13: franja superior propia para los multidía.
+L15 (2026-11-07) — "Quiero más opciones de repetir eventos (como elegir qué días de la sema…" (prompt truncado) → S13/T14: repetición semanal por días de la semana elegidos. Otras opciones de repetición (cada N semanas, anual) quedan sin implementar hasta que el usuario las elija.
+L16 (2026-11-07) — "Me gustaría commit de lo último y después que sigues con la recurrencia avanzada" → commit del copy neutral (`5c44577`, rebasado sobre los tres commits de README hechos en GitHub) y luego T14.

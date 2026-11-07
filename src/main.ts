@@ -72,6 +72,34 @@ function el<T extends HTMLElement>(id: string): T {
 }
 
 /** Shared N/C/S toolbar wiring for any contenteditable area. */
+const NOTE_SIZE_CLASS: Record<string, string> = {
+  pequena: 'note-size-small',
+  normal: 'note-size-normal',
+  grande: 'note-size-large',
+};
+
+/**
+ * Apply a text-size preset to the current selection.
+ *
+ * execCommand('fontSize') only accepts the legacy 1–7 steps, and those carry
+ * absolute sizes (step 3 is 16px) that ignore the notes stylesheet — that is
+ * why "Normal" used to come out bigger than untouched text. Step 7 is therefore
+ * used as a throwaway wrapper and immediately rewritten into a class, so one
+ * stylesheet owns size and line-height for every preset.
+ */
+function applyNoteSizePreset(editable: HTMLElement, preset: string): void {
+  const className = NOTE_SIZE_CLASS[preset];
+  if (!className) return;
+  // Record existing step-7 tags so legacy "very large" text is left alone.
+  const before = new Set(Array.from(editable.querySelectorAll('font[size="7"]')));
+  if (!document.execCommand('fontSize', false, '7')) return;
+  for (const font of Array.from(editable.querySelectorAll('font[size="7"]'))) {
+    if (before.has(font)) continue;
+    font.removeAttribute('size');
+    font.className = className;
+  }
+}
+
 function wireFormatToolbar(toolbar: HTMLElement, editable: HTMLElement, onPersist: () => void): void {
   // Keep the text selection alive when a format button is pressed. Selects are
   // excluded: they need their native mousedown to open the dropdown.
@@ -90,9 +118,9 @@ function wireFormatToolbar(toolbar: HTMLElement, editable: HTMLElement, onPersis
     onPersist();
   });
 
-  // Font-size presets (Chica/Normal/Grande/Muy grande → fontSize 1/3/5/7).
-  // Clicking the select blurs the editable, so the selection is snapshotted on
-  // mousedown and restored before execCommand applies the size to it.
+  // Font-size presets (Pequeña/Normal/Grande). Clicking the select blurs the
+  // editable, so the selection is snapshotted on mousedown and restored before
+  // the preset is applied to it.
   const sizeSelect = toolbar.querySelector<HTMLSelectElement>('.notes-font-size');
   if (sizeSelect) {
     let savedRange: Range | null = null;
@@ -118,7 +146,7 @@ function wireFormatToolbar(toolbar: HTMLElement, editable: HTMLElement, onPersis
           sel.addRange(savedRange);
         }
       }
-      document.execCommand('fontSize', false, value);
+      applyNoteSizePreset(editable, value);
       onPersist();
     });
   }

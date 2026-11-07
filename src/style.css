@@ -555,10 +555,13 @@ body[data-theme='oscuro'] .cell:not(.cell-filled) .event-no-bg {
 }
 
 .notes-area {
+  /* Size presets read these, so "Normal" is exactly the untouched text. */
+  --notes-size: 14px;
+  --notes-line: 1.55;
   flex: 1;
   min-height: 360px;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--notes-size);
   line-height: 1.75;
   color: var(--ink);
   padding: 4px 8px;
@@ -574,7 +577,25 @@ body[data-theme='oscuro'] .cell:not(.cell-filled) .event-no-bg {
 /* One Enter = one dashed item: tight spacing. A note that wraps to a second
    line keeps the full line-height, so it reads as continuous text. */
 .notes-area div {
-  line-height: 1.55;
+  line-height: var(--notes-line);
+}
+
+/* Text size presets. The small step also tightens the leading, so a small-sized
+   block fits more lines in the same panel. "Normal" repeats the defaults so it
+   always lands on the untouched look, whatever size it came from. */
+.note-size-small {
+  font-size: 11.5px;
+  line-height: 1.15;
+}
+
+.note-size-normal {
+  font-size: var(--notes-size);
+  line-height: var(--notes-line);
+}
+
+.note-size-large {
+  font-size: 17.5px;
+  line-height: 1.4;
 }
 
 .notes-area div + div {

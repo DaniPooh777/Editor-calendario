@@ -155,11 +155,31 @@ export function renderLegend(state: AppState): void {
     .join('');
 }
 
+/** Old notes carry <font size> steps; step 3 renders 16px, bigger than the
+ *  default. Map them onto the preset classes so the stylesheet owns size and
+ *  line-height for text that was styled before the presets existed. */
+const LEGACY_NOTE_SIZE_CLASS: Record<string, string> = {
+  '1': 'note-size-small',
+  '3': 'note-size-normal',
+  '5': 'note-size-large',
+  '7': 'note-size-large', // "Muy grande" is retired; keep it as the large step
+};
+
+function normalizeNoteSizes(notes: HTMLElement): void {
+  for (const font of Array.from(notes.querySelectorAll('font[size]'))) {
+    const className = LEGACY_NOTE_SIZE_CLASS[font.getAttribute('size') ?? ''];
+    if (!className) continue;
+    font.removeAttribute('size');
+    font.classList.add(className);
+  }
+}
+
 /** Notes store rich HTML per month; keep focus while the user types. */
 export function renderNotes(state: AppState, force = false): void {
   const notes = el<HTMLElement>('notes');
   if (force || document.activeElement !== notes) {
     notes.innerHTML = state.notesByMonth[monthKey(state.year, state.monthIndex)] ?? '';
+    normalizeNoteSizes(notes);
   }
 }
 

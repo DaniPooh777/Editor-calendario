@@ -66,18 +66,12 @@ Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta 
 
 El archivo lo hace todo: libera el puerto si ha quedado un servidor antiguo abierto, levanta el servidor local y abre el calendario en el navegador en <http://localhost:5173>.
 
-La ventana negra que se abre **es el servidor**. Mientras esté abierta, cada cambio se escribe también en `datos-calendario.json`. Si la cierras, la pestaña que ya tenías abierta sigue funcionando y guarda en el navegador, pero al recargar la página no volverá a cargarse: vuelve a abrir el `.bat`.
+> [!WARNING]
+> La ventana negra que se abre **es el servidor**. Mientras esté abierta, cada cambio se escribe también en `datos-calendario.json`.
+>
+> Si cierras esa ventana, la pestaña que ya tenías abierta sigue funcionando y guarda en el navegador, pero al recargar la página no volverá a cargarse: vuelve a hacer doble clic en el `.bat`.
 
 ¿Quieres un acceso directo con el icono del calendario? Crea un acceso al `.bat` y asígnale `public/favicon.ico` como icono.
-
-### Modo desarrollo
-
-Si quieres tocar el código con recarga automática:
-
-```bash
-npm run dev        # servidor de desarrollo de Vite
-npm run build      # compilación final (TypeScript + Vite)
-```
 
 ---
 

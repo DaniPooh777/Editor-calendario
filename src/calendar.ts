@@ -84,17 +84,34 @@ export interface EventSpan {
   recurrence?: 'semanal' | 'mensual';
   /** Weekdays a weekly series lands on, 0 = Monday … 6 = Sunday. */
   recurrenceDays?: number[];
+  /** Weeks between weekly occurrences; 1 or missing = every week. */
+  recurrenceInterval?: number;
+}
+
+/** Monday of the week that contains `iso` (0 = Monday weeks). */
+function mondayOf(iso: string): string {
+  return addDaysISO(iso, -isoWeekday(iso));
+}
+
+/** Does `iso` start a weekly occurrence (weekday pick + week interval)? */
+function isWeeklyOccurrence(span: EventSpan, iso: string): boolean {
+  const days = span.recurrenceDays;
+  // Picked weekdays win; an empty selection keeps "same weekday as `date`".
+  const weekdayMatches = days && days.length
+    ? days.includes(isoWeekday(iso))
+    : isoWeekday(iso) === isoWeekday(span.date);
+  if (!weekdayMatches) return false;
+  const interval = Math.max(1, Math.floor(span.recurrenceInterval ?? 1));
+  if (interval === 1) return true;
+  // Every N weeks: count Monday-based weeks from the series' first week.
+  const weeks = daysBetweenISO(mondayOf(span.date), mondayOf(iso)) / 7;
+  return weeks >= 0 && weeks % interval === 0;
 }
 
 /** Does `iso` start an occurrence of the event (respecting recurrence)? */
 function isOccurrenceStart(span: EventSpan, iso: string): boolean {
   if (!span.recurrence) return iso === span.date;
-  if (span.recurrence === 'semanal') {
-    const days = span.recurrenceDays;
-    // Picked weekdays win; an empty selection keeps "same weekday as `date`".
-    if (days && days.length) return days.includes(isoWeekday(iso));
-    return isoWeekday(iso) === isoWeekday(span.date);
-  }
+  if (span.recurrence === 'semanal') return isWeeklyOccurrence(span, iso);
   return iso.slice(8) === span.date.slice(8); // same day of the month
 }
 

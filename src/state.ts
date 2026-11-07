@@ -35,6 +35,8 @@ export interface CalendarEvent {
    * Sunday). Empty or missing keeps the old rule: the weekday of `date`.
    */
   recurrenceDays?: number[];
+  /** Weeks between occurrences of a weekly series; 1 (or missing) = every week. */
+  recurrenceInterval?: number;
 }
 
 export interface AppState {

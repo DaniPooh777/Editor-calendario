@@ -198,7 +198,8 @@ const eventId = el<HTMLInputElement>('event-id');
 const eventTime = el<HTMLInputElement>('event-time');
 const eventEnd = el<HTMLInputElement>('event-end');
 const eventRecurrence = el<HTMLSelectElement>('event-recurrence');
-const eventDaysField = el<HTMLDivElement>('event-days-field');
+const eventDaysField = el<HTMLDivElement>('event-weekly');
+const eventInterval = el<HTMLInputElement>('event-interval');
 const eventDayInputs = Array.from(
   document.querySelectorAll<HTMLInputElement>('#event-days input[type="checkbox"]'),
 );
@@ -253,6 +254,7 @@ function openCreateDialog(iso: string): void {
   eventNoBg.checked = state.brushColor === '';
   eventEnd.value = '';
   eventRecurrence.value = '';
+  eventInterval.value = '1';
   setRecurrenceDays([]);
   syncRecurrenceDaysField(false);
   eventDelete.hidden = true;
@@ -276,6 +278,7 @@ function openEditDialog(ev: CalendarEvent): void {
   eventRecurrence.value = ev.recurrence ?? '';
   // Series saved before the weekday picker fall back to the start weekday.
   setRecurrenceDays(ev.recurrenceDays ?? []);
+  eventInterval.value = String(ev.recurrenceInterval ?? 1);
   syncRecurrenceDaysField(true);
   eventHeading.textContent = 'Editar evento';
   eventDelete.hidden = false;
@@ -299,6 +302,10 @@ eventForm.addEventListener('submit', (e) => {
   // start weekday, which is what "Cada semana" always meant.
   const pickedDays = recurrence === 'semanal' ? checkedRecurrenceDays() : [];
   const recurrenceDays = pickedDays.length ? pickedDays : undefined;
+  // "Cada N semanas": clamped to 1–52 and dropped when it is just every week.
+  const rawInterval = Math.floor(Number(eventInterval.value));
+  const interval = Number.isFinite(rawInterval) ? Math.min(52, Math.max(1, rawInterval)) : 1;
+  const recurrenceInterval = recurrence === 'semanal' && interval > 1 ? interval : undefined;
 
   pushUndo();
   if (editingEventId) {
@@ -312,6 +319,7 @@ eventForm.addEventListener('submit', (e) => {
       ev.endDate = endDate;
       ev.recurrence = recurrence;
       ev.recurrenceDays = recurrenceDays;
+      ev.recurrenceInterval = recurrenceInterval;
     }
   } else {
     state.events.push({
@@ -325,6 +333,7 @@ eventForm.addEventListener('submit', (e) => {
       endDate,
       recurrence,
       recurrenceDays,
+      recurrenceInterval,
     });
   }
 

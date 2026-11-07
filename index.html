@@ -109,7 +109,18 @@
             <option value="mensual">Cada mes</option>
           </select>
         </label>
-        <div class="field field-days" id="event-days-field" hidden>
+        <div class="field field-days" id="event-weekly" hidden>
+          <span class="field-label">Cada (semanas)</span>
+          <input
+            type="number"
+            id="event-interval"
+            class="input"
+            min="1"
+            max="52"
+            step="1"
+            value="1"
+            inputmode="numeric"
+          />
           <span class="field-label">Días de la semana</span>
           <div class="day-toggles" id="event-days">
             <label class="day-toggle"><input type="checkbox" value="0" /><span>L</span></label>

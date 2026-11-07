@@ -81,6 +81,14 @@ Cita usuario: "Quiero más opciones de repetir eventos (como elegir qué días d
 - `isOccurrenceStart` usa los días marcados cuando existen; editar/borrar sigue afectando la serie completa.
 Checks: una serie con L+X+V pinta los tres días en cualquier mes; sin días marcados se pinta solo el día de `date`; `recurrenceDays` se descarta si la repetición no es semanal; build OK; test node de `occurrenceStartFor` OK.
 
+### S14 — Repetición cada N semanas (2026-11-07)
+Cita usuario: "Quiero que añadas una opción para poder repetir el evento en distintas semanas. Por ejemplo un evento que se repite cada dos semanas"
+- `CalendarEvent.recurrenceInterval?: number` (semanas entre ocurrencias; ausente o 1 = todas las semanas).
+- El diálogo suma un campo numérico "Cada (semanas)" (1–52) dentro del bloque semanal, visible solo con "Cada semana"; se normaliza a 1 cuando el valor no es un número.
+- La paridad se cuenta en semanas de lunes a domingo desde la semana del `date` original: cada N semanas las ocurrencias vuelven a caer en los días elegidos.
+- La repetición mensual ignora el intervalo.
+Checks: serie cada 2 semanas pinta 02/16/30 de noviembre y no 09/23; con días L+X pinta ambos en las semanas pares; cada 3 semanas pinta 02 y 23; intervalo 0, 1 o fraccionario se comporta como semanal simple; corrida multi-día respeta la semana activa; mensual y evento simple intactos; build OK; test node OK.
+
 ### Excluido (decisiones del usuario, no implementar)
 "Descarta la idea del link." · "Las que están pendientes de decisión descartalas" → sin compartir por URL, vista anual, duplicar mes, salto directo, paleta personalizable, PDF, backup manual, cuenta regresiva.
 
@@ -102,6 +110,7 @@ Ruta de todas: inline (superficies compartidas `main.ts`/`index.html`/`style.css
 - T12 [S12] inline — completado (input type=time step=60; `toTimeInputValue` normaliza valores legados al abrir el diálogo; color-scheme dark para los pickers nativos; build y test node OK) — commit: 4bab93a
 - T13 [S9] inline — completado (franja `.cell-allday` con los multidía antes de `.cell-events`, `margin-top: 18px` bajo el número del día; el resto sigue centrado; build OK) — commit: 4bab93a
 - T14 [S13] inline — completado (`recurrenceDays?: number[]` con convención `isoWeekday`; siete toggles L–D visibles solo con "Cada semana"; al crear nace marcado el día de la fecha; `isOccurrenceStart` usa los días elegidos y cae al día de `date` cuando no hay ninguno; build OK y test node de `occurrenceStartFor` OK) — commit: 74011f1
+- T15 [S14] inline — completado (`recurrenceInterval?: number` con paridad en semanas de lunes; campo numérico "Cada (semanas)" 1–52 dentro del bloque semanal; `isWeeklyOccurrence` combina días elegidos + intervalo; mensual intacto; build OK y test node de 24 casos OK) — commit: PENDING
 
 ## Log
 
@@ -122,3 +131,4 @@ L14 (2026-11-04) — "Además quiero que los eventos multidia estén situados en
 L15 (2026-11-07) — "Quiero más opciones de repetir eventos (como elegir qué días de la sema…" (prompt truncado) → S13/T14: repetición semanal por días de la semana elegidos. Otras opciones de repetición (cada N semanas, anual) quedan sin implementar hasta que el usuario las elija.
 L16 (2026-11-07) — "Me gustaría commit de lo último y después que sigues con la recurrencia avanzada" → commit del copy neutral (`5c44577`, rebasado sobre los tres commits de README hechos en GitHub) y luego T14.
 L17 (2026-11-07) — Verificación de T14: `npm run build` OK (tsc + vite, exit 0); test node temporal fuera del repo con `occurrenceStartFor` (19 casos: serie L/X/V en cualquier semana, día no elegido → null, anterior al ancla → null, serie semanal sin días → misma regla de antes, corrida multi-día dentro de la serie, solapamiento donde el día elegido gana sobre la corrida que lo cubre, mensual y evento simple intactos) → ALL PASS, exit 0; `dist` contiene el markup (`event-days`), las clases CSS (`day-toggle`, `field[hidden]`) y la referencia en el bundle. La interacción del diálogo (marcar toggles, guardar, ver la serie pintada) no tiene automatización DOM en el repo: queda verificación por revisión de código, como en L11. Entrega: commit `74011f1` y push a `origin/main` bajo la orden explícita del usuario.
+L18 (2026-11-07) — "Quiero que añadas una opción para poder repetir el evento en distintas semanas. Por ejemplo un evento que se repite cada dos semanas" → S14/T15: `recurrenceInterval` en semanas de lunes a domingo, contado desde la semana del `date` original. Verificación: `npm run build` OK (exit 0); test node temporal fuera del repo con 24 casos de `occurrenceStartFor` → ALL PASS, exit 0 (incluye casos previos: semanal sin días, días elegidos, corrida multi-día, mensual y evento simple). El campo del diálogo queda verificado por build + revisión de código, sin automatización DOM.

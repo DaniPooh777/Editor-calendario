@@ -2,7 +2,7 @@
 
 import './style.css';
 import { copyCalendarImage } from './capture';
-import { addDaysISO, daysBetweenISO, isoWeekday, monthKey, toISO, toTimeInputValue } from './calendar';
+import { addDaysISO, daysBetweenISO, isoWeekday, monthKey, occurrenceIndex, occurrenceStartFor, toISO, toTimeInputValue } from './calendar';
 import { renderAll, renderBrush, renderGrid, renderNotes, renderTitle, stripTags } from './render';
 import {
   BRUSH_COLORS,
@@ -23,6 +23,8 @@ document.querySelector('.app')?.setAttribute('inert', '');
 
 /** Id of the event being edited in the dialog ('' = creating new). */
 let editingEventId = '';
+/** Day of the series occurrence that was clicked ('' when creating). */
+let editingOccurrenceIso = '';
 
 function commit(): void {
   saveState(state);
@@ -200,6 +202,8 @@ const eventEnd = el<HTMLInputElement>('event-end');
 const eventRecurrence = el<HTMLSelectElement>('event-recurrence');
 const eventDaysField = el<HTMLDivElement>('event-weekly');
 const eventInterval = el<HTMLInputElement>('event-interval');
+const eventCountField = el<HTMLDivElement>('event-count-field');
+const eventCount = el<HTMLInputElement>('event-count');
 const eventDayInputs = Array.from(
   document.querySelectorAll<HTMLInputElement>('#event-days input[type="checkbox"]'),
 );
@@ -228,21 +232,24 @@ function setRecurrenceDays(days: number[]): void {
 }
 
 /**
- * The weekday toggles only make sense for a weekly series. Prefilling keeps a
- * freshly switched "Cada semana" equal to the old rule: the start weekday.
+ * The weekday and week-interval toggles only make sense for a weekly series;
+ * the repeat count applies to any series. Prefilling keeps a freshly switched
+ * "Cada semana" equal to the old rule: the start weekday.
  */
-function syncRecurrenceDaysField(prefillWhenEmpty: boolean): void {
+function syncRecurrenceFields(prefillWhenEmpty: boolean): void {
   const weekly = eventRecurrence.value === 'semanal';
   eventDaysField.hidden = !weekly;
+  eventCountField.hidden = eventRecurrence.value === '';
   if (weekly && prefillWhenEmpty && checkedRecurrenceDays().length === 0) {
     setRecurrenceDays([dialogStartWeekday()]);
   }
 }
 
-eventRecurrence.addEventListener('change', () => syncRecurrenceDaysField(true));
+eventRecurrence.addEventListener('change', () => syncRecurrenceFields(true));
 
 function openCreateDialog(iso: string): void {
   editingEventId = '';
+  editingOccurrenceIso = '';
   eventForm.reset();
   eventTitle.value = '';
   eventIso.value = iso;
@@ -255,15 +262,17 @@ function openCreateDialog(iso: string): void {
   eventEnd.value = '';
   eventRecurrence.value = '';
   eventInterval.value = '1';
+  eventCount.value = '';
   setRecurrenceDays([]);
-  syncRecurrenceDaysField(false);
+  syncRecurrenceFields(false);
   eventDelete.hidden = true;
   eventDialog.showModal();
   eventTitle.focus();
 }
 
-function openEditDialog(ev: CalendarEvent): void {
+function openEditDialog(ev: CalendarEvent, occurrenceIso: string): void {
   editingEventId = ev.id;
+  editingOccurrenceIso = occurrenceIso;
   eventIso.value = ev.date;
   eventId.value = ev.id;
   // Titles are plain text now; strip tags left over from rich-title data.
@@ -279,7 +288,8 @@ function openEditDialog(ev: CalendarEvent): void {
   // Series saved before the weekday picker fall back to the start weekday.
   setRecurrenceDays(ev.recurrenceDays ?? []);
   eventInterval.value = String(ev.recurrenceInterval ?? 1);
-  syncRecurrenceDaysField(true);
+  eventCount.value = ev.recurrenceCount ? String(ev.recurrenceCount) : '';
+  syncRecurrenceFields(true);
   eventHeading.textContent = 'Editar evento';
   eventDelete.hidden = false;
   eventDialog.showModal();
@@ -306,6 +316,10 @@ eventForm.addEventListener('submit', (e) => {
   const rawInterval = Math.floor(Number(eventInterval.value));
   const interval = Number.isFinite(rawInterval) ? Math.min(52, Math.max(1, rawInterval)) : 1;
   const recurrenceInterval = recurrence === 'semanal' && interval > 1 ? interval : undefined;
+  // "Repetir (veces)": empty or nonsense means the series never ends.
+  const rawCount = Math.floor(Number(eventCount.value));
+  const total = Number.isFinite(rawCount) && rawCount >= 1 ? Math.min(999, rawCount) : 0;
+  const recurrenceCount = recurrence && total ? total : undefined;
 
   pushUndo();
   if (editingEventId) {
@@ -320,6 +334,7 @@ eventForm.addEventListener('submit', (e) => {
       ev.recurrence = recurrence;
       ev.recurrenceDays = recurrenceDays;
       ev.recurrenceInterval = recurrenceInterval;
+      ev.recurrenceCount = recurrenceCount;
     }
   } else {
     state.events.push({
@@ -334,6 +349,7 @@ eventForm.addEventListener('submit', (e) => {
       recurrence,
       recurrenceDays,
       recurrenceInterval,
+      recurrenceCount,
     });
   }
 
@@ -342,9 +358,20 @@ eventForm.addEventListener('submit', (e) => {
 });
 
 eventDelete.addEventListener('click', () => {
-  if (!editingEventId) return;
+  const ev = state.events.find((x) => x.id === editingEventId);
+  if (!ev) return;
   pushUndo();
-  state.events = state.events.filter((x) => x.id !== editingEventId);
+  // Deleting a repeated occurrence removes it and every later one, never the
+  // earlier ones: the series is cut right before the clicked occurrence.
+  // Clicking the first occurrence (or a one-off event) deletes the whole event.
+  const cutIndex = ev.recurrence && editingOccurrenceIso
+    ? occurrenceIndex(ev, editingOccurrenceIso)
+    : 0;
+  if (cutIndex > 1) {
+    ev.recurrenceCount = cutIndex - 1;
+  } else {
+    state.events = state.events.filter((x) => x.id !== editingEventId);
+  }
   eventDialog.close();
   commit();
 });
@@ -358,7 +385,11 @@ gridEl.addEventListener('click', (e) => {
   const chip = (e.target as HTMLElement).closest<HTMLElement>('[data-event-id]');
   if (chip) {
     const ev = state.events.find((x) => x.id === chip.dataset.eventId);
-    if (ev) openEditDialog(ev);
+    if (ev) {
+      const cellIso = chip.closest<HTMLElement>('[data-iso]')?.dataset.iso ?? '';
+      // Which occurrence of the series was clicked decides what delete removes.
+      openEditDialog(ev, occurrenceStartFor(ev, cellIso) ?? ev.date);
+    }
     return;
   }
   const cell = (e.target as HTMLElement).closest<HTMLElement>('[data-iso]');

@@ -37,6 +37,11 @@ export interface CalendarEvent {
   recurrenceDays?: number[];
   /** Weeks between occurrences of a weekly series; 1 (or missing) = every week. */
   recurrenceInterval?: number;
+  /**
+   * Total occurrences of the series, counting the first one. Missing or < 1
+   * means it repeats forever.
+   */
+  recurrenceCount?: number;
 }
 
 export interface AppState {

@@ -86,6 +86,11 @@ export interface EventSpan {
   recurrenceDays?: number[];
   /** Weeks between weekly occurrences; 1 or missing = every week. */
   recurrenceInterval?: number;
+  /**
+   * How many occurrences the series has in total, counting the first one.
+   * Missing or < 1 means unlimited.
+   */
+  recurrenceCount?: number;
 }
 
 /** Monday of the week that contains `iso` (0 = Monday weeks). */
@@ -93,14 +98,16 @@ function mondayOf(iso: string): string {
   return addDaysISO(iso, -isoWeekday(iso));
 }
 
+/** Weekdays a weekly series lands on, ascending, `isoWeekday` style. */
+function weeklyDays(span: EventSpan): number[] {
+  const picked = span.recurrenceDays;
+  if (!picked || picked.length === 0) return [isoWeekday(span.date)];
+  return [...picked].sort((a, b) => a - b);
+}
+
 /** Does `iso` start a weekly occurrence (weekday pick + week interval)? */
 function isWeeklyOccurrence(span: EventSpan, iso: string): boolean {
-  const days = span.recurrenceDays;
-  // Picked weekdays win; an empty selection keeps "same weekday as `date`".
-  const weekdayMatches = days && days.length
-    ? days.includes(isoWeekday(iso))
-    : isoWeekday(iso) === isoWeekday(span.date);
-  if (!weekdayMatches) return false;
+  if (!weeklyDays(span).includes(isoWeekday(iso))) return false;
   const interval = Math.max(1, Math.floor(span.recurrenceInterval ?? 1));
   if (interval === 1) return true;
   // Every N weeks: count Monday-based weeks from the series' first week.
@@ -120,7 +127,7 @@ function isOccurrenceStart(span: EventSpan, iso: string): boolean {
  * not reach that day. Repeated series look back at most one period (a week or
  * a month): that finds the covering run and keeps rendering bounded.
  */
-export function occurrenceStartFor(span: EventSpan, iso: string): string | null {
+function occurrenceStartRaw(span: EventSpan, iso: string): string | null {
   const duration = span.endDate && span.endDate > span.date ? daysBetweenISO(span.date, span.endDate) : 0;
   if (!span.recurrence) {
     return iso >= span.date && iso <= addDaysISO(span.date, duration) ? span.date : null;
@@ -132,6 +139,61 @@ export function occurrenceStartFor(span: EventSpan, iso: string): string | null 
     if (isOccurrenceStart(span, start)) return start;
   }
   return null;
+}
+
+/** Hard cap on occurrences, or 0 when the series has no limit. */
+export function recurrenceLimit(span: EventSpan): number {
+  if (!span.recurrence) return 0;
+  const count = Math.floor(span.recurrenceCount ?? 0);
+  return count >= 1 ? Math.min(999, count) : 0;
+}
+
+/**
+ * 1-based position of `startIso` inside its series. Used for the repeat count
+ * and for truncating a series when one of its occurrences is deleted.
+ */
+export function occurrenceIndex(span: EventSpan, startIso: string): number {
+  if (!span.recurrence) return 1;
+
+  if (span.recurrence === 'mensual') {
+    // Months where the day does not exist are skipped, so they must not
+    // consume a slot: count real occurrences from the anchor month.
+    const [startYear, startMonth] = span.date.split('-').map(Number);
+    const [endYear, endMonth] = startIso.split('-').map(Number);
+    const months = (endYear - startYear) * 12 + (endMonth - startMonth);
+    const day = Number(span.date.slice(8));
+    let index = 0;
+    for (let i = 0; i <= months; i++) {
+      const year = startYear + Math.floor((startMonth - 1 + i) / 12);
+      const month = (startMonth - 1 + i) % 12;
+      if (day <= new Date(year, month + 1, 0).getDate()) index++; // 0 = last day
+    }
+    return index;
+  }
+
+  const days = weeklyDays(span);
+  const interval = Math.max(1, Math.floor(span.recurrenceInterval ?? 1));
+  const weeks = daysBetweenISO(mondayOf(span.date), mondayOf(startIso)) / 7;
+  // The anchor week only holds the picked days from the anchor day onwards.
+  const firstWeekDays = days.filter((day) => day >= isoWeekday(span.date));
+  // Occurrences before this week: every full active week, plus the anchor one.
+  const before = weeks === 0
+    ? 0
+    : firstWeekDays.length + (Math.ceil(weeks / interval) - 1) * days.length;
+  const weekDays = weeks === 0 ? firstWeekDays : days;
+  return before + weekDays.indexOf(isoWeekday(startIso)) + 1;
+}
+
+/**
+ * Start day of the occurrence that covers `iso`, or null when the event does
+ * not reach that day or the series already used up its repeat count.
+ */
+export function occurrenceStartFor(span: EventSpan, iso: string): string | null {
+  const start = occurrenceStartRaw(span, iso);
+  if (!start) return null;
+  const limit = recurrenceLimit(span);
+  if (limit && occurrenceIndex(span, start) > limit) return null;
+  return start;
 }
 
 /**

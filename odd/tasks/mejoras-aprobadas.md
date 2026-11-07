@@ -129,7 +129,7 @@ Ruta de todas: inline (superficies compartidas `main.ts`/`index.html`/`style.css
 - T14 [S13] inline — completado (`recurrenceDays?: number[]` con convención `isoWeekday`; siete toggles L–D visibles solo con "Cada semana"; al crear nace marcado el día de la fecha; `isOccurrenceStart` usa los días elegidos y cae al día de `date` cuando no hay ninguno; build OK y test node de `occurrenceStartFor` OK) — commit: 74011f1
 - T15 [S14] inline — completado (`recurrenceInterval?: number` con paridad en semanas de lunes; campo numérico "Cada (semanas)" 1–52 dentro del bloque semanal; `isWeeklyOccurrence` combina días elegidos + intervalo; mensual intacto; build OK y test node de 24 casos OK) — commit: 3e002fd
 - T16 [S15] inline — completado (`recurrenceCount?: number` + campo "Repetir (veces)" visible con cualquier repetición; `occurrenceIndex` 1-based por serie; borrado desde una ocurrencia recorta la serie a `índice − 1` y deja intactas las anteriores; build OK y test node OK) — commit: aa78114
-- T17 [S16] inline — completado (presets por clase `note-size-*`, "Normal" iguala los valores por defecto de `.notes-area`, Pequeña con interlineado 1.15, "Muy grande" eliminada, normalización de `<font size>` heredados al renderizar; build OK) — commit: PENDING
+- T17 [S16] inline — completado (presets por clase `note-size-*`, "Normal" iguala los valores por defecto de `.notes-area`, Pequeña con interlineado 1.15, "Muy grande" eliminada, normalización de `<font size>` heredados al renderizar; build OK) — commit: 498cbc0
 
 ## Log
 

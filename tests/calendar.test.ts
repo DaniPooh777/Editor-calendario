@@ -14,6 +14,8 @@ import {
   addDaysISO,
   daysBetweenISO,
   getMonthGrid,
+  occurrenceIndex,
+  occurrenceStartFor,
   recurrenceLimit,
   toTimeInputValue,
 } from '../src/calendar.ts';
@@ -108,4 +110,92 @@ test('recurrenceLimit caps a series at 999 occurrences', () => {
   assert.equal(recurrenceLimit({ date: '2026-03-02', recurrence: 'semanal', recurrenceCount: 5 }), 5);
   assert.equal(recurrenceLimit({ date: '2026-03-02', recurrence: 'semanal', recurrenceCount: 5000 }), 999);
   assert.equal(recurrenceLimit({ date: '2026-03-02', recurrence: 'semanal', recurrenceCount: 2.7 }), 2);
+});
+
+test('a weekly series never reaches a day before its anchor', () => {
+  // Starts on Wednesday 2026-03-04 and includes Mondays, but the Monday of its
+  // own first week sits behind the anchor and must not become an occurrence.
+  const span = {
+    date: '2026-03-04',
+    recurrence: 'semanal' as const,
+    recurrenceDays: [0, 2, 4],
+  };
+  assert.equal(occurrenceStartFor(span, '2026-03-02'), null);
+  assert.equal(occurrenceStartFor(span, '2026-03-04'), '2026-03-04');
+});
+
+test('a monthly series on the 31st skips months that have no 31st', () => {
+  const span = { date: '2026-01-31', recurrence: 'mensual' as const };
+  assert.equal(occurrenceStartFor(span, '2026-02-28'), null);
+  assert.equal(occurrenceStartFor(span, '2026-03-31'), '2026-03-31');
+  // February is skipped rather than consuming a slot in the series.
+  assert.equal(occurrenceIndex(span, '2026-03-31'), 2);
+  assert.equal(occurrenceIndex(span, '2026-05-31'), 3);
+});
+
+test('a repeat count on a monthly 31st series counts only real months', () => {
+  const span = { date: '2026-01-31', recurrence: 'mensual' as const, recurrenceCount: 2 };
+  assert.equal(occurrenceStartFor(span, '2026-03-31'), '2026-03-31'); // occurrence 2, at the cap
+  assert.equal(occurrenceStartFor(span, '2026-05-31'), null); // occurrence 3, past the cap
+});
+
+test('the anchor week of a weekly series counts only its remaining days', () => {
+  // Starts Wednesday 2026-03-04 with Monday, Wednesday and Friday picked. That
+  // first week holds two occurrences (Wed, Fri), not three, because its Monday
+  // is behind the anchor.
+  const span = {
+    date: '2026-03-04',
+    recurrence: 'semanal' as const,
+    recurrenceDays: [0, 2, 4],
+  };
+  assert.equal(occurrenceIndex(span, '2026-03-04'), 1); // Wednesday, the anchor
+  assert.equal(occurrenceIndex(span, '2026-03-06'), 2); // Friday, same week
+  assert.equal(occurrenceIndex(span, '2026-03-09'), 3); // Monday, next week
+  assert.equal(occurrenceIndex(span, '2026-03-13'), 5); // Friday, next week
+});
+
+test('an every-N-weeks series counts only its active weeks', () => {
+  // Wednesday 2026-03-04, every second week: 04, 18, 01-04 and so on.
+  const span = {
+    date: '2026-03-04',
+    recurrence: 'semanal' as const,
+    recurrenceDays: [2],
+    recurrenceInterval: 2,
+  };
+  assert.equal(occurrenceStartFor(span, '2026-03-11'), null); // the skipped week
+  assert.equal(occurrenceStartFor(span, '2026-03-18'), '2026-03-18');
+  assert.equal(occurrenceIndex(span, '2026-03-18'), 2);
+  assert.equal(occurrenceIndex(span, '2026-04-01'), 3);
+});
+
+test('a recurring multi-day event is found through any of its days', () => {
+  // Monday 2026-03-02 running for three days, repeated every Monday.
+  const span = {
+    date: '2026-03-02',
+    endDate: '2026-03-04',
+    recurrence: 'semanal' as const,
+  };
+  assert.equal(occurrenceStartFor(span, '2026-03-02'), '2026-03-02');
+  assert.equal(occurrenceStartFor(span, '2026-03-03'), '2026-03-02');
+  assert.equal(occurrenceStartFor(span, '2026-03-04'), '2026-03-02');
+  assert.equal(occurrenceStartFor(span, '2026-03-10'), '2026-03-09');
+  assert.equal(occurrenceStartFor(span, '2026-03-12'), null); // past the run
+});
+
+test('truncating a series keeps exactly the occurrences before the deleted one', () => {
+  // Deleting an occurrence sets recurrenceCount to occurrenceIndex - 1, so this
+  // pins that the two functions agree about where an occurrence sits.
+  const base = {
+    date: '2026-03-04',
+    recurrence: 'semanal' as const,
+    recurrenceDays: [0, 2, 4],
+  };
+  const deleted = '2026-03-09';
+  const index = occurrenceIndex(base, deleted);
+  assert.equal(index, 3);
+
+  const truncated = { ...base, recurrenceCount: index - 1 };
+  assert.equal(occurrenceStartFor(truncated, '2026-03-06'), '2026-03-06'); // occurrence 2 stays
+  assert.equal(occurrenceStartFor(truncated, deleted), null); // the deleted one is gone
+  assert.equal(occurrenceStartFor(truncated, '2026-03-11'), null); // and everything after it
 });

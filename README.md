@@ -210,4 +210,4 @@ Los tests usan el runner nativo de Node (`npm test`), también sin dependencias:
 
 ---
 
-*Arma tu mes, píntalo a tu manera y compártelo como imagen.* 🗓️
+*Arma tu mes, píntalo a tu manera y compártelo como imagen.*

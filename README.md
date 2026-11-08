@@ -182,6 +182,7 @@ Editor calendario/
 ├── abrir-calendario.bat    # Doble clic: arranca el servidor y abre el navegador
 ├── package.json            # Dependencias y scripts
 ├── tsconfig.json           # Configuración de TypeScript
+├── tests/                  # Tests de la lógica de fechas (`npm test`)
 ├── datos-calendario.json   # Tus datos (se crea solo, no se sube al repo)
 ├── dist/                   # Versión compilada que sirve el servidor (no se sube al repo)
 ├── docs/
@@ -204,6 +205,8 @@ Editor calendario/
 ## 🧱 Tecnología
 
 [Vite](https://vite.dev/) + [TypeScript](https://www.typescriptlang.org/) sin frameworks, y [html-to-image](https://github.com/bubkoo/html-to-image) para exportar el PNG. El servidor local usa solo módulos nativos de Node, sin dependencias extra.
+
+Los tests usan el runner nativo de Node (`npm test`), también sin dependencias: Node ejecuta el TypeScript directamente.
 
 ---
 

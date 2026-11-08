@@ -1,6 +1,6 @@
-[![Banner Editor Calendario](docs/imagenes/Banner_Github.jpg)](docs/imagenes/Banner_Github.jpg)
+[![Banner Editor Calendario Sencillo](docs/imagenes/Banner_Github.jpg)](docs/imagenes/Banner_Github.jpg)
 
-# Editor Calendario
+# Editor Calendario Sencillo
 
 <p align="center">
   <a href="#-qué-puedes-hacer">Qué puedes hacer</a> ·
@@ -11,7 +11,7 @@
   <a href="#-estructura-del-proyecto">Estructura</a>
 </p>
 
-**Editor Calendario** es una aplicación web para crear a mano el calendario del mes: escribes tus eventos, los pintas con colores, añades una leyenda y notas con formato, y al final copias el mes como una imagen limpia para compartirlo o imprimirlo.
+**Editor Calendario Sencillo** es una aplicación web para crear a mano el calendario del mes: escribes tus eventos, los pintas con colores, añades una leyenda y notas con formato, y al final copias el mes como una imagen limpia para compartirlo o imprimirlo.
 
 Nació como agenda de la universidad —asignaturas, entregas, exámenes, horarios—, pero sirve para cualquier mes que quieras organizar a tu manera.
 
@@ -21,7 +21,7 @@ Todo funciona **en tu ordenador**: no hay cuentas, no hay nube y nada viaja a un
 
 Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta esta línea:
 
-![Vista principal del Editor Calendario](docs/imagenes/captura.png)
+![Vista principal del Editor Calendario Sencillo](docs/imagenes/captura.png)
 
 -->
 
@@ -176,7 +176,7 @@ Las decoraciones se reparten sobre la cuadrícula y **no** aparecen en el PNG: l
 ## 📁 Estructura del proyecto
 
 ```
-Editor calendario/
+Editor Calendario Sencillo/
 ├── index.html              # Punto de entrada HTML
 ├── server.mjs              # Servidor local + guardado en datos-calendario.json
 ├── abrir-calendario.bat    # Doble clic: arranca el servidor y abre el navegador

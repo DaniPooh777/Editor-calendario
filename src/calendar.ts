@@ -198,8 +198,9 @@ export function occurrenceStartFor(span: EventSpan, iso: string): string | null 
 
 /**
  * Build the Monday-first grid for a month.
- * Returns 5 or 6 weeks of 7 DayCells, including leading/trailing
- * days from neighbouring months.
+ * Returns 4, 5 or 6 weeks of 7 DayCells, including leading/trailing
+ * days from neighbouring months. Four weeks happens only when the month is
+ * exactly 28 days long and starts on a Monday (February 2021, for example).
  */
 export function getMonthGrid(year: number, monthIndex: number): DayCell[][] {
   const firstOfMonth = new Date(year, monthIndex, 1);

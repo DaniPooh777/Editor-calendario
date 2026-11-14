@@ -5,7 +5,8 @@
 <p align="center">
   <a href="#-qué-puedes-hacer">Qué puedes hacer</a> ·
   <a href="#-empezar">Empezar</a> ·
-  <a href="#-guías">Guías</a>
+  <a href="#-guías">Guías</a> ·
+  <a href="#-estructura-del-proyecto">Estructura</a>
 </p>
 
 **Editor Calendario Sencillo** es una aplicación web para crear a mano el calendario del mes: escribes tus eventos, los pintas con colores, añades una leyenda y notas con formato, y al final copias el mes como una imagen limpia para compartirlo o imprimirlo.
@@ -63,7 +64,38 @@ Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta 
 | [Uso](./docs/uso.md) | Navegación, crear un evento, la barra superior, las notas del mes y las estaciones |
 | [Tus datos](./docs/datos.md) | Dónde se guarda el calendario y cómo hacer una copia de seguridad |
 | [Problemas comunes](./docs/problemas-comunes.md) | Qué hacer cuando el calendario no arranca o no se ve como esperabas |
-| [Estructura del proyecto](./docs/estructura.md) | Qué hay en cada carpeta y con qué está hecho |
+| [Tecnología](./docs/tecnologia.md) | Con qué está construido el proyecto y qué hace falta para correr los tests |
+
+---
+
+## 📁 Estructura del proyecto
+
+```
+Editor Calendario Sencillo/
+├── index.html              # Punto de entrada HTML
+├── server.mjs              # Servidor local + guardado en datos-calendario.json
+├── abrir-calendario.bat    # Windows: doble clic, arranca el servidor y abre el navegador
+├── abrir-calendario.sh     # Linux: ejecutar, arranca el servidor y abre el navegador
+├── package.json            # Dependencias y scripts
+├── tsconfig.json           # Configuración de TypeScript
+├── tests/                  # Tests de la lógica de fechas (`npm test`)
+├── datos-calendario.json   # Tus datos (se crea solo, no se sube al repo)
+├── servidor.log            # Mensajes del servidor en modo sin ventana (se crea solo)
+├── dist/                   # Versión compilada que sirve el servidor (no se sube al repo)
+├── docs/
+│   └── imagenes/           # Banner del README
+├── public/
+│   ├── favicon.svg         # Icono de la pestaña
+│   └── favicon.ico
+└── src/
+    ├── main.ts             # Arranque y eventos de la interfaz
+    ├── calendar.ts         # Lógica de fechas, cuadrícula y repeticiones (pura)
+    ├── render.ts           # Dibujo de casillas, leyenda y notas
+    ├── state.ts            # Estado de la app y persistencia
+    ├── decorations.ts      # Decoraciones SVG por estación
+    ├── capture.ts          # Exportación PNG limpia
+    └── style.css           # Estilos y variables por estación
+```
 
 ---
 

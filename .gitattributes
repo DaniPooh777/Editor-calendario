@@ -1,0 +1,3 @@
+# El lanzador es un script POSIX: debe llegar en LF y con permiso de ejecución
+# a cualquier clon, incluso si se hizo en Windows o pasó por OneDrive.
+*.sh text eol=lf

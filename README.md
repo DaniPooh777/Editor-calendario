@@ -53,7 +53,7 @@ Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta 
 
 ### Lo que necesitas
 
-- **Windows** para el arranque con doble clic (el resto también funciona en cualquier sistema con Node).
+- **Windows** para arrancar con doble clic, o **Linux** para arrancar con `./abrir-calendario.sh`. La app en sí funciona en cualquier sistema con Node.
 - **Node.js 18 o superior** ([descárgalo desde nodejs.org](https://nodejs.org/), versión LTS).
 - Un navegador moderno (Chrome, Edge, Firefox, Brave…).
 
@@ -71,16 +71,22 @@ Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta 
 
 ### Arrancar el calendario
 
-**Haz doble clic en `abrir-calendario.bat`.**
+**Windows: haz doble clic en `abrir-calendario.bat`.**
+**Linux: ejecuta `./abrir-calendario.sh` desde una terminal en la carpeta del proyecto.**
 
-El archivo lo hace todo: libera el puerto si ha quedado un servidor antiguo abierto, levanta el servidor local y abre el calendario en el navegador en <http://localhost:5173>.
+Los dos hacen lo mismo: liberan el puerto si ha quedado un servidor antiguo abierto, levantan el servidor local y abren el calendario en el navegador en <http://localhost:5173>.
 
 > [!WARNING]
-> La ventana negra que se abre **es el servidor**. Mientras esté abierta, cada cambio se escribe también en `datos-calendario.json`.
+> La ventana del servidor (la consola en Windows, la terminal en Linux) **es el servidor**. Mientras esté abierta, cada cambio se escribe también en `datos-calendario.json`.
 >
-> Si cierras esa ventana, la pestaña que ya tenías abierta sigue funcionando y guarda en el navegador, pero al recargar la página no volverá a cargarse: vuelve a hacer doble clic en el `.bat`.
+> Si cierras esa ventana, la pestaña que ya tenías abierta sigue funcionando y guarda en el navegador, pero al recargar la página no volverá a cargarse: vuelve a arrancar el calendario.
 
-¿Quieres un acceso directo con el icono del calendario? Crea un acceso al `.bat` y asígnale `public/favicon.ico` como icono.
+Dos diferencias del `.sh` que conviene saber:
+
+- Si el puerto 5173 lo ocupa **otro** programa, avisa y no lo mata: en Windows el `.bat` cierra lo que sea que esté en el puerto; el `.sh` solo cierra servidores del calendario, para no tumbar tu otro servidor.
+- Se puede arrancar en otro puerto con `PORT=5174 ./abrir-calendario.sh`.
+
+¿Quieres un acceso directo con el icono del calendario? En Windows, crea un acceso al `.bat` y asígnale `public/favicon.ico` como icono. En Linux, crea un `.desktop` (por ejemplo `~/.local/share/applications/calendario.desktop`) con `Exec=` apuntando a la ruta absoluta del `.sh` e `Icon=` a la ruta absoluta de `public/favicon.ico`.
 
 ---
 
@@ -167,7 +173,9 @@ Las decoraciones se reparten sobre la cuadrícula y **no** aparecen en el PNG: l
 | Síntoma | Solución |
 |---------|----------|
 | "Falta la versión compilada" | Ejecuta `npm run build` en la carpeta del proyecto |
-| El navegador no abre nada en `localhost:5173` | Cierra la ventana del servidor y vuelve a hacer doble clic en el `.bat` (el `.bat` ya libera el puerto) |
+| El navegador no abre nada en `localhost:5173` | Cierra la ventana del servidor y vuelve a arrancarlo (el `.bat` y el `.sh` ya liberan el puerto si el que lo ocupa es el propio calendario) |
+| `Permission denied` al ejecutar `./abrir-calendario.sh` | Dale permisos de ejecución con `chmod +x abrir-calendario.sh` (se pierden al pasar la carpeta por un ZIP o desde Windows) |
+| El `.sh` avisa que el puerto 5173 lo ocupa otro programa | Ciérralo, o arranca el calendario en otro puerto con `PORT=5174 ./abrir-calendario.sh` |
 | Cambio el código y no veo los cambios | El servidor sirve `dist/`: vuelve a compilar con `npm run build` |
 | He perdido los eventos al borrar los datos del navegador | Revisa `datos-calendario.json`: la app lo usa como respaldo |
 
@@ -179,7 +187,8 @@ Las decoraciones se reparten sobre la cuadrícula y **no** aparecen en el PNG: l
 Editor Calendario Sencillo/
 ├── index.html              # Punto de entrada HTML
 ├── server.mjs              # Servidor local + guardado en datos-calendario.json
-├── abrir-calendario.bat    # Doble clic: arranca el servidor y abre el navegador
+├── abrir-calendario.bat    # Windows: doble clic, arranca el servidor y abre el navegador
+├── abrir-calendario.sh     # Linux: ejecutar, arranca el servidor y abre el navegador
 ├── package.json            # Dependencias y scripts
 ├── tsconfig.json           # Configuración de TypeScript
 ├── tests/                  # Tests de la lógica de fechas (`npm test`)

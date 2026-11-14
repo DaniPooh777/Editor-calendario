@@ -6,7 +6,8 @@
   <a href="#-qué-puedes-hacer">Qué puedes hacer</a> ·
   <a href="#-empezar">Empezar</a> ·
   <a href="#-guías">Guías</a> ·
-  <a href="#-estructura-del-proyecto">Estructura</a>
+  <a href="#-estructura-del-proyecto">Estructura</a> ·
+  <a href="#-tecnología">Tecnología</a>
 </p>
 
 **Editor Calendario Sencillo** es una aplicación web para crear a mano el calendario del mes: escribes tus eventos, los pintas con colores, añades una leyenda y notas con formato, y al final copias el mes como una imagen limpia para compartirlo o imprimirlo.
@@ -58,7 +59,6 @@ Todo funciona **en tu ordenador**: no hay cuentas, no hay nube y nada viaja a un
 | [Uso](./docs/uso.md) | Navegación, crear un evento, la barra superior, las notas del mes y las estaciones |
 | [Tus datos](./docs/datos.md) | Dónde se guarda el calendario y cómo hacer una copia de seguridad |
 | [Problemas comunes](./docs/problemas-comunes.md) | Qué hacer cuando el calendario no arranca o no se ve como esperabas |
-| [Tecnología](./docs/tecnologia.md) | Con qué está construido el proyecto y qué hace falta para correr los tests |
 
 ---
 
@@ -90,6 +90,14 @@ Editor Calendario Sencillo/
     ├── capture.ts          # Exportación PNG limpia
     └── style.css           # Estilos y variables por estación
 ```
+
+---
+
+## 🧱 Tecnología
+
+[Vite](https://vite.dev/) + [TypeScript](https://www.typescriptlang.org/) sin frameworks, y [html-to-image](https://github.com/bubkoo/html-to-image) para exportar el PNG. El servidor local usa solo módulos nativos de Node, sin dependencias extra.
+
+Los tests usan el runner nativo de Node (`npm test`), también sin dependencias: Node ejecuta el TypeScript directamente. Eso necesita el soporte de *type stripping* de Node, es decir **Node 22.18 o superior** (la app y el build siguen funcionando desde Node 18).
 
 ---
 

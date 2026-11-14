@@ -72,7 +72,7 @@ Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta 
 ### Arrancar el calendario
 
 **Windows: haz doble clic en `abrir-calendario.bat`.**
-**Linux: ejecuta `./abrir-calendario.sh` desde una terminal en la carpeta del proyecto.**
+**Linux: haz doble clic en `Abrir Calendario.desktop` (o ejecuta `./abrir-calendario.sh` en una terminal).**
 
 Los dos hacen lo mismo: liberan el puerto si ha quedado un servidor antiguo abierto, levantan el servidor local y abren el calendario en el navegador en <http://localhost:5173>.
 
@@ -86,7 +86,16 @@ Dos diferencias del `.sh` que conviene saber:
 - Si el puerto 5173 lo ocupa **otro** programa, avisa y no lo mata: en Windows el `.bat` cierra lo que sea que esté en el puerto; el `.sh` solo cierra servidores del calendario, para no tumbar tu otro servidor.
 - Se puede arrancar en otro puerto con `PORT=5174 ./abrir-calendario.sh`.
 
-¿Quieres un acceso directo con el icono del calendario? En Windows, crea un acceso al `.bat` y asígnale `public/favicon.ico` como icono. En Linux, crea un `.desktop` (por ejemplo `~/.local/share/applications/calendario.desktop`) con `Exec=` apuntando a la ruta absoluta del `.sh` e `Icon=` a la ruta absoluta de `public/favicon.ico`.
+### Abrir con doble clic (Linux)
+
+La primera vez hay que arrancar el `.sh` una vez, o pedirlo sin levantar el servidor con `./abrir-calendario.sh --acceso`: eso deja en la carpeta el acceso **`Abrir Calendario.desktop`**, el equivalente del `Abrir Calendario.lnk` de Windows. A partir de ahí, doble clic y listo: se abre la ventana de terminal del servidor y el calendario en el navegador.
+
+El acceso se regenera solo cada vez que arranca el calendario, así que sigue apuntando bien aunque muevas la carpeta. Tiene rutas absolutas de tu máquina, así que es local y no se sube al repositorio.
+
+> [!NOTE]
+> En Linux, un `.sh` con doble clic **no** se ejecuta: el gestor de archivos lo abre como texto. Por eso el acceso es un `.desktop`, que sí se ejecuta. Y si lo quieres también en el menú de aplicaciones, copia `Abrir Calendario.desktop` a `~/.local/share/applications/`.
+
+¿Quieres un acceso con el icono del calendario? En Windows, crea un acceso al `.bat` y asígnale `public/favicon.ico` como icono. En Linux ya lo tienes generado: el `.desktop` ya lleva `public/favicon.svg` como icono.
 
 ---
 
@@ -175,6 +184,8 @@ Las decoraciones se reparten sobre la cuadrícula y **no** aparecen en el PNG: l
 | "Falta la versión compilada" | Ejecuta `npm run build` en la carpeta del proyecto |
 | El navegador no abre nada en `localhost:5173` | Cierra la ventana del servidor y vuelve a arrancarlo (el `.bat` y el `.sh` ya liberan el puerto si el que lo ocupa es el propio calendario) |
 | `Permission denied` al ejecutar `./abrir-calendario.sh` | Dale permisos de ejecución con `chmod +x abrir-calendario.sh` (se pierden al pasar la carpeta por un ZIP o desde Windows) |
+| Doble clic en `abrir-calendario.sh` abre el archivo en el editor | Es lo normal en Linux: usa `Abrir Calendario.desktop`, que el lanzador genera solo |
+| Nautilus dice que el acceso «no es de confianza» | Vuelve a marcarlo con `gio set "Abrir Calendario.desktop" metadata::trusted true` (el lanzador lo hace en cada arranque) |
 | El `.sh` avisa que el puerto 5173 lo ocupa otro programa | Ciérralo, o arranca el calendario en otro puerto con `PORT=5174 ./abrir-calendario.sh` |
 | Cambio el código y no veo los cambios | El servidor sirve `dist/`: vuelve a compilar con `npm run build` |
 | He perdido los eventos al borrar los datos del navegador | Revisa `datos-calendario.json`: la app lo usa como respaldo |

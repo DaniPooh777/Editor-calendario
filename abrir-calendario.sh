@@ -101,6 +101,15 @@ write_shortcut() {
   if [[ ! -f "${icon}" ]]; then icon="${SCRIPT_DIR}/public/favicon.ico"; fi
   if [[ ! -f "${icon}" ]]; then icon="applications-office"; fi
 
+  # Un salto de línea en la ruta partiría la clave en dos líneas y dejaría la
+  # entrada inválida (el formato Desktop Entry no tiene escapes para eso).
+  case "${SCRIPT_PATH}${icon}" in
+    *$'\n'* | *$'\r'*)
+      printf 'No se crea el acceso directo: la ruta del proyecto tiene un salto de línea.\n' >&2
+      return 1
+      ;;
+  esac
+
   content="$(printf '%s\n' \
     '[Desktop Entry]' \
     'Type=Application' \

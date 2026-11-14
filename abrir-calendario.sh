@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 #
-# Abre el calendario con ./abrir-calendario.sh: levanta el servidor local —que
-# guarda los datos en datos-calendario.json— y abre el navegador. Es el
-# equivalente en Linux de abrir-calendario.bat.
+# Abre el calendario: levanta el servidor local —que guarda los datos en
+# datos-calendario.json— y abre el navegador. Es el equivalente en Linux de
+# abrir-calendario.bat.
 #
-# También deja un acceso «Abrir Calendario.desktop» para abrirlo con doble clic
-# desde el gestor de archivos, como el Abrir Calendario.lnk de Windows.
-#
-# Este terminal ES el servidor: mientras esté abierto, cada cambio se escribe en
-# datos-calendario.json. Ctrl+C (o cerrar la ventana) lo apaga.
+#   ./abrir-calendario.sh                 abre con este terminal como ventana del
+#                                         servidor: ves los mensajes y Ctrl+C lo apaga
+#   ./abrir-calendario.sh --sin-ventana   sin ventana: el servidor queda en segundo
+#                                         plano y su salida va a servidor.log
+#   ./abrir-calendario.sh --detener       apaga el servidor
+#   ./abrir-calendario.sh --instalar      deja «Calendario» y «Cerrar Calendario»
+#                                         en el menú de aplicaciones
+#   ./abrir-calendario.sh --acceso        solo regenera los archivos .desktop
 
 set -euo pipefail
 
@@ -21,7 +24,15 @@ export PORT # server.mjs lo lee del entorno; así el puerto que se comprueba es 
 HOST=127.0.0.1
 URL="http://localhost:${PORT}"
 
-die() { printf '%s\n' "$*" >&2; exit 1; }
+# En modo sin ventana no hay dónde leer el error: además del stderr, se avisa por
+# notificación del escritorio.
+die() {
+  printf '%s\n' "$*" >&2
+  if [[ "${MODE:-}" == detached ]] && command -v notify-send >/dev/null 2>&1; then
+    notify-send -a Calendario 'No se pudo abrir el calendario' "$*" >/dev/null 2>&1 || true
+  fi
+  exit 1
+}
 
 command -v node >/dev/null 2>&1 ||
   die 'Falta Node.js. Instálalo desde https://nodejs.org/ (versión LTS) y vuelve a abrir el calendario.'
@@ -71,8 +82,12 @@ free_port() {
 # menú de aplicaciones con --instalar. El de la carpeta sirve para el click
 # derecho → «Ejecutar como programa».
 DESKTOP_FILE="${SCRIPT_DIR}/Abrir Calendario.desktop"
+STOP_DESKTOP_FILE="${SCRIPT_DIR}/Cerrar Calendario.desktop"
 DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 INSTALLED_FILE="${DATA_HOME}/applications/abrir-calendario.desktop"
+INSTALLED_STOP_FILE="${DATA_HOME}/applications/cerrar-calendario.desktop"
+# Sin ventana no hay dónde ver los mensajes del servidor: van a este archivo.
+LOG_FILE="${SCRIPT_DIR}/servidor.log"
 
 # Valor seguro para la clave Exec: el formato Desktop Entry necesita comillas y
 # escapes, o una ruta con espacios rompe la línea.
@@ -85,21 +100,39 @@ exec_quote() {
   printf '"%s"' "${s}"
 }
 
-# Escribe el acceso directo si falta o quedó desactualizado, y lo marca como
-# confiable para que Nautilus lo ejecute en vez de abrirlo como texto.
-write_shortcut() {
-  local exec_value terminal_value icon content
+# Contenido de una entrada .desktop: $1 nombre, $2 comentario, $3 Exec, $4 icono.
+desktop_entry() {
+  printf '%s\n' \
+    '[Desktop Entry]' \
+    'Type=Application' \
+    'Version=1.0' \
+    "Name=$1" \
+    "Comment=$2" \
+    "Exec=$3" \
+    "Icon=$4" \
+    'Terminal=false' \
+    'Categories=Office;' \
+    'StartupNotify=true'
+}
 
-  # xdg-terminal-exec abre la ventana de terminal del servidor sin depender de
-  # la preferencia de terminal del escritorio (en Hyprland, Terminal=true no
-  # tiene a quién preguntarle).
-  if command -v xdg-terminal-exec >/dev/null 2>&1; then
-    exec_value="$(exec_quote "$(command -v xdg-terminal-exec)") $(exec_quote "${SCRIPT_PATH}")"
-    terminal_value=false
-  else
-    exec_value="$(exec_quote "${SCRIPT_PATH}")"
-    terminal_value=true
+# Escribe una entrada si falta o quedó desactualizada, y la marca confiable para
+# que el gestor de archivos no la trate como texto.
+write_entry() {
+  local path=$1 content=$2
+  if [[ -f "${path}" ]] && [[ "$(<"${path}")" == "${content}" ]]; then
+    return 0
   fi
+  printf '%s\n' "${content}" >"${path}"
+  chmod +x "${path}"
+  if command -v gio >/dev/null 2>&1; then
+    gio set "${path}" metadata::trusted true >/dev/null 2>&1 || true
+  fi
+  printf 'Acceso directo listo: %s\n' "$(basename "${path}")"
+}
+
+# Regenera los dos accesos: abrir (sin ventana) y cerrar.
+write_shortcuts() {
+  local icon open_exec stop_exec
 
   icon="${SCRIPT_DIR}/public/favicon.svg"
   if [[ ! -f "${icon}" ]]; then icon="${SCRIPT_DIR}/public/favicon.ico"; fi
@@ -109,83 +142,107 @@ write_shortcut() {
   # entrada inválida (el formato Desktop Entry no tiene escapes para eso).
   case "${SCRIPT_PATH}${icon}" in
     *$'\n'* | *$'\r'*)
-      printf 'No se crea el acceso directo: la ruta del proyecto tiene un salto de línea.\n' >&2
+      printf 'No se crean los accesos: la ruta del proyecto tiene un salto de línea.\n' >&2
       return 1
       ;;
   esac
 
-  content="$(printf '%s\n' \
-    '[Desktop Entry]' \
-    'Type=Application' \
-    'Version=1.0' \
-    'Name=Calendario' \
-    'Comment=Editor Calendario Sencillo: escribe tu mes y compártelo como imagen' \
-    "Exec=${exec_value}" \
-    "Icon=${icon}" \
-    "Terminal=${terminal_value}" \
-    'Categories=Office;' \
-    'StartupNotify=true')"
+  open_exec="$(exec_quote "${SCRIPT_PATH}") --sin-ventana"
+  stop_exec="$(exec_quote "${SCRIPT_PATH}") --detener"
 
-  if [[ -f "${DESKTOP_FILE}" ]] && [[ "$(<"${DESKTOP_FILE}")" == "${content}" ]]; then
-    return 0
-  fi
+  write_entry "${DESKTOP_FILE}" "$(desktop_entry 'Calendario' \
+    'Editor Calendario Sencillo: escribe tu mes y compártelo como imagen' "${open_exec}" "${icon}")"
+  write_entry "${STOP_DESKTOP_FILE}" "$(desktop_entry 'Cerrar Calendario' \
+    'Apaga el servidor del calendario' "${stop_exec}" "${icon}")"
 
-  printf '%s\n' "${content}" >"${DESKTOP_FILE}"
-  chmod +x "${DESKTOP_FILE}"
-  if command -v gio >/dev/null 2>&1; then
-    gio set "${DESKTOP_FILE}" metadata::trusted true >/dev/null 2>&1 || true
-  fi
-  printf 'Acceso directo listo: %s (click derecho → «Ejecutar como programa»).\n' "$(basename "${DESKTOP_FILE}")"
-
-  # Si ya está instalado en el menú de aplicaciones, mantenlo al día para que no
-  # quede apuntando a una ruta vieja si mueves la carpeta.
+  # Si ya están instalados en el menú de aplicaciones, mantenlos al día para que
+  # no queden apuntando a una ruta vieja si mueves la carpeta.
   if [[ -f "${INSTALLED_FILE}" ]]; then
     install -m 0755 "${DESKTOP_FILE}" "${INSTALLED_FILE}" 2>/dev/null || true
   fi
+  if [[ -f "${INSTALLED_STOP_FILE}" ]]; then
+    install -m 0755 "${STOP_DESKTOP_FILE}" "${INSTALLED_STOP_FILE}" 2>/dev/null || true
+  fi
 }
 
-# Copia el acceso al menú de aplicaciones, que es el único sitio desde donde el
-# escritorio lo ejecuta con un clic.
-install_shortcut() {
+# Copia los accesos al menú de aplicaciones, que es el único sitio desde donde el
+# escritorio los ejecuta con un clic.
+install_shortcuts() {
   local dir
-  write_shortcut || return 1
+  write_shortcuts || return 1
   dir="$(dirname -- "${INSTALLED_FILE}")"
   mkdir -p "${dir}"
   install -m 0755 "${DESKTOP_FILE}" "${INSTALLED_FILE}"
+  install -m 0755 "${STOP_DESKTOP_FILE}" "${INSTALLED_STOP_FILE}"
   if command -v gio >/dev/null 2>&1; then
     gio set "${INSTALLED_FILE}" metadata::trusted true >/dev/null 2>&1 || true
+    gio set "${INSTALLED_STOP_FILE}" metadata::trusted true >/dev/null 2>&1 || true
   fi
   if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "${dir}" >/dev/null 2>&1 || true
   fi
-  printf 'Instalado en %s\nYa aparece como «Calendario» en el menú de aplicaciones.\n' "${INSTALLED_FILE}"
+  printf 'Instalado en %s\nEn el menú de aplicaciones aparecen «Calendario» y «Cerrar Calendario».\n' "${dir}"
 }
 
+# Apaga el servidor del calendario si está corriendo.
+stop_server() {
+  local pid line found=0
+  while read -r pid; do
+    [[ -n "${pid}" ]] || continue
+    line="$(cmdline_of "${pid}")"
+    if [[ "${line}" == *server.mjs* ]]; then
+      kill "${pid}" 2>/dev/null || true
+      found=1
+    fi
+  done < <(listener_pids)
+  if [[ "${found}" == 1 ]]; then
+    printf 'Calendario detenido: puerto %s liberado.\n' "${PORT}"
+  else
+    printf 'No había ningún calendario corriendo en el puerto %s.\n' "${PORT}"
+  fi
+}
+
+MODE=terminal
 case "${1:-}" in
   --acceso)
-    write_shortcut
+    write_shortcuts
     exit 0
     ;;
   --instalar)
-    install_shortcut
+    install_shortcuts
     exit 0
     ;;
+  --detener)
+    stop_server
+    exit 0
+    ;;
+  --sin-ventana) MODE=detached ;;
   '') ;;
-  *) die "Opción no reconocida: $1 (usa --acceso o --instalar)." ;;
+  *) die "Opción no reconocida: $1 (usa --sin-ventana, --detener, --acceso o --instalar)." ;;
 esac
 
 free_port
 
-# El servidor corre en segundo plano para poder esperar su arranque y abrir el
-# navegador en el momento justo; su salida sigue apareciendo en este terminal.
-node server.mjs &
-server_pid=$!
-trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
+server_pid=''
+if [[ "${MODE}" == detached ]]; then
+  # Sin ventana: el servidor se desacopla de cualquier terminal con setsid y su
+  # salida va al log, porque ya no hay ventana donde verla.
+  : >"${LOG_FILE}"
+  setsid node server.mjs >>"${LOG_FILE}" 2>&1 </dev/null &
+  disown 2>/dev/null || true
+else
+  # En una terminal, el servidor corre en segundo plano del script para poder
+  # esperar su arranque; su salida sigue apareciendo aquí y Ctrl+C lo apaga.
+  node server.mjs &
+  server_pid=$!
+  trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
+fi
 
 ready=0
 for _ in {1..50}; do
-  kill -0 "${server_pid}" 2>/dev/null ||
-    die 'El servidor se cerró al arrancar (revisa el mensaje de arriba).'
+  if [[ -n "${server_pid}" ]] && ! kill -0 "${server_pid}" 2>/dev/null; then
+    die 'El servidor se cerró al arrancar.'
+  fi
   if (exec 3<>"/dev/tcp/${HOST}/${PORT}") 2>/dev/null; then
     ready=1
     break
@@ -194,7 +251,7 @@ for _ in {1..50}; do
 done
 [[ "${ready}" == 1 ]] || die "El servidor no respondió en ${URL}."
 
-write_shortcut || printf 'No se pudo crear el acceso directo; el calendario arranca igual.\n' >&2
+write_shortcuts || printf 'No se pudieron crear los accesos; el calendario arranca igual.\n' >&2
 
 if command -v xdg-open >/dev/null 2>&1; then
   xdg-open "${URL}" >/dev/null 2>&1 || true
@@ -202,6 +259,11 @@ elif command -v open >/dev/null 2>&1; then
   open "${URL}" >/dev/null 2>&1 || true
 else
   printf 'Abre %s en tu navegador.\n' "${URL}" >&2
+fi
+
+if [[ "${MODE}" == detached ]]; then
+  printf 'Calendario abierto en %s (sin ventana). Log: %s\n' "${URL}" "${LOG_FILE}"
+  exit 0
 fi
 
 printf '\nEste terminal es el servidor. Ctrl+C para cerrarlo.\n\n'

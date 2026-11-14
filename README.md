@@ -77,9 +77,11 @@ Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta 
 Los dos hacen lo mismo: liberan el puerto si ha quedado un servidor antiguo abierto, levantan el servidor local y abren el calendario en el navegador en <http://localhost:5173>.
 
 > [!WARNING]
-> La ventana del servidor (la consola en Windows, la terminal en Linux) **es el servidor**. Mientras esté abierta, cada cambio se escribe también en `datos-calendario.json`.
+> En Windows, la ventana negra que se abre **es el servidor**; en Linux abierto desde una terminal, esa terminal es el servidor. Mientras el servidor esté vivo, cada cambio se escribe también en `datos-calendario.json`.
 >
-> Si cierras esa ventana, la pestaña que ya tenías abierta sigue funcionando y guarda en el navegador, pero al recargar la página no volverá a cargarse: vuelve a arrancar el calendario.
+> Si lo cierras, la pestaña que ya tenías abierta sigue funcionando y guarda en el navegador, pero al recargar la página no volverá a cargarse: vuelve a arrancar el calendario.
+
+En Linux abierto desde el menú de aplicaciones el servidor **no muestra ninguna ventana**: corre en segundo plano y se apaga con **Cerrar Calendario** en ese mismo menú (o con `./abrir-calendario.sh --detener`). Sus mensajes van a `servidor.log`, en la carpeta del proyecto.
 
 Dos diferencias del `.sh` que conviene saber:
 
@@ -94,13 +96,15 @@ Ejecuta una vez:
 ./abrir-calendario.sh --instalar
 ```
 
-Eso deja **`Calendario`** en el menú de aplicaciones, con el icono del calendario y apuntando a esta carpeta. Desde ahí se abre con un clic, como cualquier otro programa.
+Eso deja **`Calendario`** y **`Cerrar Calendario`** en el menú de aplicaciones, con el icono del calendario y apuntando a esta carpeta. Desde ahí se abre con un clic, como cualquier otro programa, y **sin ninguna ventana de terminal**: el servidor queda en segundo plano y sus mensajes se escriben en `servidor.log`.
 
-El acceso se regenera solo en cada arranque, así que sigue funcionando aunque muevas la carpeta. Tiene rutas absolutas de tu máquina: es local y no se sube al repositorio.
+Para apagarlo, **Cerrar Calendario** en el mismo menú. Arrancarlo otra vez desde el menú reemplaza la instancia anterior, así que nunca quedan dos.
 
-El mismo comando deja también `Abrir Calendario.desktop` dentro de la carpeta del proyecto. Ahí **no** se ejecuta con doble clic: los gestores de archivos de GNOME dejaron de ejecutar `.desktop` que estén fuera del menú de aplicaciones, a propósito y por seguridad. Para usarlo desde la carpeta, click derecho → **Ejecutar como programa**.
+Los accesos se regeneran solos en cada arranque, así que siguen funcionando aunque muevas la carpeta. Tienen rutas absolutas de tu máquina: son locales y no se suben al repositorio.
 
-`./abrir-calendario.sh --acceso` regenera solo el archivo de la carpeta, sin tocar el menú.
+El mismo comando deja también `Abrir Calendario.desktop` y `Cerrar Calendario.desktop` dentro de la carpeta del proyecto. Ahí **no** se ejecutan con doble clic: los gestores de archivos de GNOME dejaron de ejecutar `.desktop` que estén fuera del menú de aplicaciones, a propósito y por seguridad. Para usarlos desde la carpeta, click derecho → **Ejecutar como programa**.
+
+`./abrir-calendario.sh --acceso` regenera solo esos dos archivos, sin tocar el menú. Y `./abrir-calendario.sh` a secas (desde una terminal) abre el calendario **con** la terminal como ventana del servidor: útil cuando algo falla y quieres ver los mensajes en vivo.
 
 > [!NOTE]
 > En Linux, doble clic sobre un `.sh` tampoco lo ejecuta: el gestor de archivos lo abre como texto. Las dos vías con un clic son el menú de aplicaciones y la terminal (`./abrir-calendario.sh`).
@@ -197,6 +201,8 @@ Las decoraciones se reparten sobre la cuadrícula y **no** aparecen en el PNG: l
 | Doble clic en `abrir-calendario.sh` abre el archivo en el editor | Es lo normal en Linux: usa **`Calendario`** en el menú de aplicaciones (`./abrir-calendario.sh --instalar`) |
 | Doble clic en `Abrir Calendario.desktop` me abre el texto | Los gestores de GNOME no ejecutan `.desktop` de una carpeta cualquiera. Instálalo con `--instalar`, o click derecho → **Ejecutar como programa** |
 | No aparece `Calendario` en el menú de aplicaciones | Vuelve a correr `./abrir-calendario.sh --instalar` (refresca el índice del menú con `update-desktop-database`) |
+| No sé cómo apagar el calendario | **Cerrar Calendario** en el menú de aplicaciones, o `./abrir-calendario.sh --detener` |
+| Lo abro desde el menú y no pasa nada, sin ningún error a la vista | No hay ventana: mira `servidor.log` en la carpeta del proyecto |
 | El `.sh` avisa que el puerto 5173 lo ocupa otro programa | Ciérralo, o arranca el calendario en otro puerto con `PORT=5174 ./abrir-calendario.sh` |
 | Cambio el código y no veo los cambios | El servidor sirve `dist/`: vuelve a compilar con `npm run build` |
 | He perdido los eventos al borrar los datos del navegador | Revisa `datos-calendario.json`: la app lo usa como respaldo |
@@ -215,6 +221,7 @@ Editor Calendario Sencillo/
 ├── tsconfig.json           # Configuración de TypeScript
 ├── tests/                  # Tests de la lógica de fechas (`npm test`)
 ├── datos-calendario.json   # Tus datos (se crea solo, no se sube al repo)
+├── servidor.log            # Mensajes del servidor en modo sin ventana (se crea solo)
 ├── dist/                   # Versión compilada que sirve el servidor (no se sube al repo)
 ├── docs/
 │   └── imagenes/           # Banner del README

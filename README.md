@@ -89,54 +89,23 @@ En Linux no hay ventana negra ni doble clic en el `.bat`: todo eso está en [la 
 
 ## 🐧 Linux
 
-Todo lo que hay que saber para usarlo en Linux. Las dos formas de abrirlo:
+En Linux no hay ventana negra ni doble clic en un `.bat`. Hay dos formas de arrancarlo.
 
-| Cómo | Terminal | Cómo se apaga |
-|------|----------|---------------|
-| Menú de aplicaciones: **Calendario** | ninguna | **Cerrar Calendario** en el mismo menú |
-| `./abrir-calendario.sh` en una terminal | sí, y ahí ves los mensajes en vivo | `Ctrl+C` o cerrar la ventana |
-
-En los dos casos, cerrar la pestaña del navegador **no** apaga nada: solo se detiene con **Cerrar Calendario**, `--detener` o `Ctrl+C`. Arrancarlo otra vez reemplaza la instancia anterior, así que nunca quedan dos servidores.
-
-### Instalarlo en el menú (una sola vez)
+**Desde el menú de aplicaciones**, sin que se abra ninguna ventana. La primera vez hay que instalarlo:
 
 ```bash
 ./abrir-calendario.sh --instalar
 ```
 
-Deja **`Calendario`** y **`Cerrar Calendario`** en el menú de aplicaciones, con el icono del calendario. Desde ahí se abre con un clic, **sin ninguna ventana de terminal**: el servidor queda en segundo plano.
+A partir de ahí aparece como **`Calendario`** en el menú y se abre con un clic.
 
-Para quitarlo del menú:
-
-```bash
-rm ~/.local/share/applications/abrir-calendario.desktop \
-   ~/.local/share/applications/cerrar-calendario.desktop
-```
-
-### Sin ventana, o con ventana
-
-Desde el menú nunca se abre una terminal. Lo que queda vivo es un proceso `node` sin terminal asociada, y sus mensajes van a `servidor.log`, en la carpeta del proyecto. Si un arranque falla, además aparece una notificación del escritorio, porque no hay ventana donde leer el error.
-
-Cuando quieras ver lo que pasa en vivo, ábrelo desde una terminal:
+**Desde una terminal**, que queda como ventana del servidor y te muestra los mensajes en vivo:
 
 ```bash
-./abrir-calendario.sh              # la terminal ES el servidor; Ctrl+C lo apaga
-./abrir-calendario.sh --detener    # o apágalo desde ahí
+./abrir-calendario.sh
 ```
 
-### Puerto ocupado u otro puerto
-
-- Si el puerto 5173 lo ocupa **otro** programa, avisa y **no lo mata**. En Windows el `.bat` cierra lo que sea que esté en el puerto; el `.sh` solo cierra servidores del propio calendario, para no tumbar tu otro servidor.
-- Para usar otro puerto: `PORT=5174 ./abrir-calendario.sh`.
-
-### Los `.desktop` de la carpeta
-
-`--instalar` también deja `Abrir Calendario.desktop` y `Cerrar Calendario.desktop` dentro del proyecto. Ahí **no** se ejecutan con doble clic: los gestores de archivos de GNOME dejaron de ejecutar `.desktop` que estén fuera del menú de aplicaciones, a propósito y por seguridad. Para usarlos desde la carpeta, click derecho → **Ejecutar como programa**.
-
-`./abrir-calendario.sh --acceso` regenera solo esos dos archivos, sin tocar el menú. Todos los accesos se regeneran solos en cada arranque, así que siguen apuntando bien aunque muevas la carpeta; llevan rutas absolutas, así que son locales y no se suben al repositorio.
-
-> [!NOTE]
-> Doble clic sobre un `.sh` tampoco lo ejecuta: el gestor de archivos lo abre como texto. Las vías con un clic son el menú de aplicaciones y la terminal.
+Arrancarlo otra vez reemplaza la instancia anterior, así que nunca quedan dos servidores abiertos. Para apagarlo, **`Cerrar Calendario`** en el menú de aplicaciones o `./abrir-calendario.sh --detener`.
 
 ---
 
@@ -229,6 +198,8 @@ Las decoraciones se reparten sobre la cuadrícula y **no** aparecen en el PNG: l
 | Doble clic en `Abrir Calendario.desktop` me abre el texto | Los gestores de GNOME no ejecutan `.desktop` de una carpeta cualquiera. Instálalo con `--instalar`, o click derecho → **Ejecutar como programa** |
 | No aparece `Calendario` en el menú de aplicaciones | Vuelve a correr `./abrir-calendario.sh --instalar` (refresca el índice del menú con `update-desktop-database`) |
 | No sé cómo apagar el calendario | **Cerrar Calendario** en el menú de aplicaciones, o `./abrir-calendario.sh --detener` |
+| Quiero ver los mensajes del servidor en vivo | Arranca desde una terminal: `./abrir-calendario.sh` muestra la salida y `Ctrl+C` lo apaga |
+| Quiero quitarlo del menú de aplicaciones | Borra `~/.local/share/applications/abrir-calendario.desktop` y `~/.local/share/applications/cerrar-calendario.desktop` |
 | Lo abro desde el menú y no pasa nada, sin ningún error a la vista | No hay ventana: mira `servidor.log` en la carpeta del proyecto |
 | El `.sh` avisa que el puerto 5173 lo ocupa otro programa | Ciérralo, o arranca el calendario en otro puerto con `PORT=5174 ./abrir-calendario.sh` |
 | Cambio el código y no veo los cambios | El servidor sirve `dist/`: vuelve a compilar con `npm run build` |

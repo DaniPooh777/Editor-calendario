@@ -65,10 +65,14 @@ free_port() {
 }
 
 # --- Acceso directo para abrir con doble clic --------------------------------
-# En Linux el equivalente de Abrir Calendario.lnk es un archivo .desktop: en
-# Nautilus un .sh con doble clic se abre en el editor, un .desktop se ejecuta.
-# Se regenera solo, así que sigue apuntando bien si mueves la carpeta.
+# En Linux el equivalente de Abrir Calendario.lnk es un archivo .desktop.
+# Ojo: Nautilus NO ejecuta .desktop que estén en una carpeta cualquiera —lo quitó
+# a propósito, por sandboxing— así que el camino soportado es instalarlo en el
+# menú de aplicaciones con --instalar. El de la carpeta sirve para el click
+# derecho → «Ejecutar como programa».
 DESKTOP_FILE="${SCRIPT_DIR}/Abrir Calendario.desktop"
+DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
+INSTALLED_FILE="${DATA_HOME}/applications/abrir-calendario.desktop"
 
 # Valor seguro para la clave Exec: el formato Desktop Entry necesita comillas y
 # escapes, o una ruta con espacios rompe la línea.
@@ -114,7 +118,7 @@ write_shortcut() {
     '[Desktop Entry]' \
     'Type=Application' \
     'Version=1.0' \
-    'Name=Abrir Calendario' \
+    'Name=Calendario' \
     'Comment=Editor Calendario Sencillo: escribe tu mes y compártelo como imagen' \
     "Exec=${exec_value}" \
     "Icon=${icon}" \
@@ -131,7 +135,30 @@ write_shortcut() {
   if command -v gio >/dev/null 2>&1; then
     gio set "${DESKTOP_FILE}" metadata::trusted true >/dev/null 2>&1 || true
   fi
-  printf 'Acceso directo listo: %s (doble clic para abrir el calendario).\n' "$(basename "${DESKTOP_FILE}")"
+  printf 'Acceso directo listo: %s (click derecho → «Ejecutar como programa»).\n' "$(basename "${DESKTOP_FILE}")"
+
+  # Si ya está instalado en el menú de aplicaciones, mantenlo al día para que no
+  # quede apuntando a una ruta vieja si mueves la carpeta.
+  if [[ -f "${INSTALLED_FILE}" ]]; then
+    install -m 0755 "${DESKTOP_FILE}" "${INSTALLED_FILE}" 2>/dev/null || true
+  fi
+}
+
+# Copia el acceso al menú de aplicaciones, que es el único sitio desde donde el
+# escritorio lo ejecuta con un clic.
+install_shortcut() {
+  local dir
+  write_shortcut || return 1
+  dir="$(dirname -- "${INSTALLED_FILE}")"
+  mkdir -p "${dir}"
+  install -m 0755 "${DESKTOP_FILE}" "${INSTALLED_FILE}"
+  if command -v gio >/dev/null 2>&1; then
+    gio set "${INSTALLED_FILE}" metadata::trusted true >/dev/null 2>&1 || true
+  fi
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database "${dir}" >/dev/null 2>&1 || true
+  fi
+  printf 'Instalado en %s\nYa aparece como «Calendario» en el menú de aplicaciones.\n' "${INSTALLED_FILE}"
 }
 
 case "${1:-}" in
@@ -139,8 +166,12 @@ case "${1:-}" in
     write_shortcut
     exit 0
     ;;
+  --instalar)
+    install_shortcut
+    exit 0
+    ;;
   '') ;;
-  *) die "Opción no reconocida: $1 (usa --acceso para regenerar solo el acceso directo)." ;;
+  *) die "Opción no reconocida: $1 (usa --acceso o --instalar)." ;;
 esac
 
 free_port

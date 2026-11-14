@@ -15,13 +15,7 @@ Nació como agenda de la universidad —asignaturas, entregas, exámenes, horari
 
 Todo funciona **en tu ordenador**: no hay cuentas, no hay nube y nada viaja a un servidor de terceros.
 
-<!-- Captura del proyecto:
-
-Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta esta línea:
-
-![Vista principal del Editor Calendario Sencillo](docs/imagenes/captura.png)
-
--->
+![Vista principal del Editor Calendario Sencillo: un mes de otoño con eventos de colores, notas y leyenda](docs/imagenes/captura.png)
 
 ---
 
@@ -83,7 +77,7 @@ Editor Calendario Sencillo/
 ├── servidor.log            # Mensajes del servidor en modo sin ventana (se crea solo)
 ├── dist/                   # Versión compilada que sirve el servidor (no se sube al repo)
 ├── docs/
-│   └── imagenes/           # Banner del README
+│   └── imagenes/           # Banner y captura del README
 ├── public/
 │   ├── favicon.svg         # Icono de la pestaña
 │   └── favicon.ico

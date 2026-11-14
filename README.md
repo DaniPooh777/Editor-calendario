@@ -5,6 +5,7 @@
 <p align="center">
   <a href="#-qué-puedes-hacer">Qué puedes hacer</a> ·
   <a href="#-puesta-en-marcha">Puesta en marcha</a> ·
+  <a href="#-linux">Linux</a> ·
   <a href="#-cómo-se-usa">Cómo se usa</a> ·
   <a href="#-dónde-quedan-tus-datos">Tus datos</a> ·
   <a href="#-problemas-comunes">Problemas comunes</a> ·
@@ -53,9 +54,9 @@ Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta 
 
 ### Lo que necesitas
 
-- **Windows** para arrancar con doble clic, o **Linux** para arrancar con `./abrir-calendario.sh`. La app en sí funciona en cualquier sistema con Node.
 - **Node.js 18 o superior** ([descárgalo desde nodejs.org](https://nodejs.org/), versión LTS).
 - Un navegador moderno (Chrome, Edge, Firefox, Brave…).
+- **Windows** para arrancar con doble clic. En **Linux** todo está en [la sección Linux](#-linux).
 
 ### Primera vez (una sola vez)
 
@@ -69,47 +70,73 @@ Para publicarla, guarda la imagen como `docs/imagenes/captura.png` y descomenta 
 
 > La carpeta `dist/` es la versión compilada que sirve el servidor local, y no se sube al repositorio: por eso este paso hace falta siempre que la app haya cambiado o después de clonar el proyecto.
 
-### Arrancar el calendario
+### Arrancar el calendario (Windows)
 
-**Windows: haz doble clic en `abrir-calendario.bat`.**
-**Linux: ábrelo como `Calendario` en el menú de aplicaciones (la primera vez hay que instalarlo con `./abrir-calendario.sh --instalar`), o ejecuta `./abrir-calendario.sh` en una terminal.**
+**Haz doble clic en `abrir-calendario.bat`.**
 
-Los dos hacen lo mismo: liberan el puerto si ha quedado un servidor antiguo abierto, levantan el servidor local y abren el calendario en el navegador en <http://localhost:5173>.
+Ese archivo lo hace todo: libera el puerto si ha quedado un servidor antiguo abierto, levanta el servidor local y abre el calendario en el navegador en <http://localhost:5173>.
 
 > [!WARNING]
-> En Windows, la ventana negra que se abre **es el servidor**; en Linux abierto desde una terminal, esa terminal es el servidor. Mientras el servidor esté vivo, cada cambio se escribe también en `datos-calendario.json`.
+> La ventana negra que se abre **es el servidor**. Mientras esté abierta, cada cambio se escribe también en `datos-calendario.json`.
 >
-> Si lo cierras, la pestaña que ya tenías abierta sigue funcionando y guarda en el navegador, pero al recargar la página no volverá a cargarse: vuelve a arrancar el calendario.
+> Si cierras esa ventana, la pestaña que ya tenías abierta sigue funcionando y guarda en el navegador, pero al recargar la página no volverá a cargarse: vuelve a hacer doble clic en el `.bat`.
 
-En Linux abierto desde el menú de aplicaciones el servidor **no muestra ninguna ventana**: corre en segundo plano y se apaga con **Cerrar Calendario** en ese mismo menú (o con `./abrir-calendario.sh --detener`). Sus mensajes van a `servidor.log`, en la carpeta del proyecto.
+¿Quieres un acceso con el icono del calendario? Crea un acceso al `.bat` y asígnale `public/favicon.ico` como icono.
 
-Dos diferencias del `.sh` que conviene saber:
+En Linux no hay ventana negra ni doble clic en el `.bat`: todo eso está en [la sección Linux](#-linux).
 
-- Si el puerto 5173 lo ocupa **otro** programa, avisa y no lo mata: en Windows el `.bat` cierra lo que sea que esté en el puerto; el `.sh` solo cierra servidores del calendario, para no tumbar tu otro servidor.
-- Se puede arrancar en otro puerto con `PORT=5174 ./abrir-calendario.sh`.
+---
 
-### Abrir con un clic (Linux)
+## 🐧 Linux
 
-Ejecuta una vez:
+Todo lo que hay que saber para usarlo en Linux. Las dos formas de abrirlo:
+
+| Cómo | Terminal | Cómo se apaga |
+|------|----------|---------------|
+| Menú de aplicaciones: **Calendario** | ninguna | **Cerrar Calendario** en el mismo menú |
+| `./abrir-calendario.sh` en una terminal | sí, y ahí ves los mensajes en vivo | `Ctrl+C` o cerrar la ventana |
+
+En los dos casos, cerrar la pestaña del navegador **no** apaga nada: solo se detiene con **Cerrar Calendario**, `--detener` o `Ctrl+C`. Arrancarlo otra vez reemplaza la instancia anterior, así que nunca quedan dos servidores.
+
+### Instalarlo en el menú (una sola vez)
 
 ```bash
 ./abrir-calendario.sh --instalar
 ```
 
-Eso deja **`Calendario`** y **`Cerrar Calendario`** en el menú de aplicaciones, con el icono del calendario y apuntando a esta carpeta. Desde ahí se abre con un clic, como cualquier otro programa, y **sin ninguna ventana de terminal**: el servidor queda en segundo plano y sus mensajes se escriben en `servidor.log`.
+Deja **`Calendario`** y **`Cerrar Calendario`** en el menú de aplicaciones, con el icono del calendario. Desde ahí se abre con un clic, **sin ninguna ventana de terminal**: el servidor queda en segundo plano.
 
-Para apagarlo, **Cerrar Calendario** en el mismo menú. Arrancarlo otra vez desde el menú reemplaza la instancia anterior, así que nunca quedan dos.
+Para quitarlo del menú:
 
-Los accesos se regeneran solos en cada arranque, así que siguen funcionando aunque muevas la carpeta. Tienen rutas absolutas de tu máquina: son locales y no se suben al repositorio.
+```bash
+rm ~/.local/share/applications/abrir-calendario.desktop \
+   ~/.local/share/applications/cerrar-calendario.desktop
+```
 
-El mismo comando deja también `Abrir Calendario.desktop` y `Cerrar Calendario.desktop` dentro de la carpeta del proyecto. Ahí **no** se ejecutan con doble clic: los gestores de archivos de GNOME dejaron de ejecutar `.desktop` que estén fuera del menú de aplicaciones, a propósito y por seguridad. Para usarlos desde la carpeta, click derecho → **Ejecutar como programa**.
+### Sin ventana, o con ventana
 
-`./abrir-calendario.sh --acceso` regenera solo esos dos archivos, sin tocar el menú. Y `./abrir-calendario.sh` a secas (desde una terminal) abre el calendario **con** la terminal como ventana del servidor: útil cuando algo falla y quieres ver los mensajes en vivo.
+Desde el menú nunca se abre una terminal. Lo que queda vivo es un proceso `node` sin terminal asociada, y sus mensajes van a `servidor.log`, en la carpeta del proyecto. Si un arranque falla, además aparece una notificación del escritorio, porque no hay ventana donde leer el error.
+
+Cuando quieras ver lo que pasa en vivo, ábrelo desde una terminal:
+
+```bash
+./abrir-calendario.sh              # la terminal ES el servidor; Ctrl+C lo apaga
+./abrir-calendario.sh --detener    # o apágalo desde ahí
+```
+
+### Puerto ocupado u otro puerto
+
+- Si el puerto 5173 lo ocupa **otro** programa, avisa y **no lo mata**. En Windows el `.bat` cierra lo que sea que esté en el puerto; el `.sh` solo cierra servidores del propio calendario, para no tumbar tu otro servidor.
+- Para usar otro puerto: `PORT=5174 ./abrir-calendario.sh`.
+
+### Los `.desktop` de la carpeta
+
+`--instalar` también deja `Abrir Calendario.desktop` y `Cerrar Calendario.desktop` dentro del proyecto. Ahí **no** se ejecutan con doble clic: los gestores de archivos de GNOME dejaron de ejecutar `.desktop` que estén fuera del menú de aplicaciones, a propósito y por seguridad. Para usarlos desde la carpeta, click derecho → **Ejecutar como programa**.
+
+`./abrir-calendario.sh --acceso` regenera solo esos dos archivos, sin tocar el menú. Todos los accesos se regeneran solos en cada arranque, así que siguen apuntando bien aunque muevas la carpeta; llevan rutas absolutas, así que son locales y no se suben al repositorio.
 
 > [!NOTE]
-> En Linux, doble clic sobre un `.sh` tampoco lo ejecuta: el gestor de archivos lo abre como texto. Las dos vías con un clic son el menú de aplicaciones y la terminal (`./abrir-calendario.sh`).
-
-¿Quieres un acceso con el icono del calendario? En Windows, crea un acceso al `.bat` y asígnale `public/favicon.ico` como icono. En Linux ya lo tienes generado: el `.desktop` ya lleva `public/favicon.svg` como icono.
+> Doble clic sobre un `.sh` tampoco lo ejecuta: el gestor de archivos lo abre como texto. Las vías con un clic son el menú de aplicaciones y la terminal.
 
 ---
 
